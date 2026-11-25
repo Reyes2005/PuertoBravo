@@ -394,6 +394,7 @@ a { color: #9fd0ff; }
 <li><code>backup (copia)</code>: makes a backup.</li>
 <li><code>backups (copias)</code>: the backups there are.</li>
 <li><code>reload (recargar)</code>: reads servidor.conf again and applies what can be changed without restarting.</li>
+<li><code>cheats (trampas) si or no</code>: allows or blocks the cheat menu on this server (console or panel only).</li>
 <li><code>update (actualizar)</code>: warns everyone that the server is restarting to update, waits for the countdown, saves everything and stops it; the games wait and come back in on their own when you start it again. You can add the seconds of warning after it.</li>
 <li><code>restart (reiniciar)</code>: the same, but saying it is for maintenance. You can add the seconds of warning after it.</li>
 <li><code>shutdown (apagar)</code>: warns everyone, saves everything and stops the server.</li>
@@ -817,6 +818,13 @@ a { color: #9fd0ff; }
 </ul>
 <h4>Allow two sessions with the same identity: <code>varias_sesiones</code></h4>
 <p>For testing only. By default, no: if someone comes in with their character from somewhere else, the previous session is closed.</p>
+<ul>
+<li>Values: si or no.</li>
+<li>Default: <code>no</code>.</li>
+<li>It applies without restarting the server.</li>
+</ul>
+<h4>Allow cheat menu: <code>permitir_trampas</code></h4>
+<p>With no, which is the default, games completely disable the cheat menu when joining this server. With si, the server owner allows using it here.</p>
 <ul>
 <li>Values: si or no.</li>
 <li>Default: <code>no</code>.</li>

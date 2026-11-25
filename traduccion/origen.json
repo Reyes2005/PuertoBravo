@@ -9919,6 +9919,9 @@
 "Con no, los jugadores no pueden herirse, atracarse ni robarse entre sí.": [
 "servidor/opciones.py"
 ],
+"Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el dueño del servidor permite usarlo aquí.": [
+"servidor/opciones.py"
+],
 "Con no, que es lo de siempre, los barrios se conquistan y se defienden desde el móvil, en Territorios. Con sí, cada barrio de las ciudades es de una banda y los suyos andan por sus calles. Un barrio se conquista yendo allí: al tumbar a dos de los suyos, o plantándoles cara desde el móvil cuando ya estás dentro, la banda viene a por ti en tres oleadas. Tu propia banda acude a ayudarte. No hay que salir del barrio hasta acabar. Y cuando ataquen un barrio tuyo, lo defiendes entrando en él. En un servidor en línea no cuenta: allí los barrios son de las bandas de los jugadores.": [
 "juego/menus_juego.py"
 ],
@@ -15378,6 +15381,12 @@
 "El dueño del chiringuito se recupera en dos días y jura que mientras viva no pagarás un pulpo en su isla.": [
 "data/datos/misiones_extra2.json"
 ],
+"El dueño del servidor ha bloqueado el menú de trampas.": [
+"servidor/nucleo.py"
+],
+"El dueño del servidor ha permitido el menú de trampas.": [
+"servidor/nucleo.py"
+],
 "El día de mercado baja medio pueblo. No se puede ni andar.": [
 "juego/respuestas_datos1.py"
 ],
@@ -15855,6 +15864,12 @@
 ],
 "El mensajero": [
 "data/datos/misiones.json"
+],
+"El menú de trampas está bloqueado en este servidor.": [
+"servidor/nucleo.py"
+],
+"El menú de trampas está permitido en este servidor.": [
+"servidor/nucleo.py"
 ],
 "El menú «{titulo}» de la barra de menús no tiene letra de acceso (&).": [
 "editor/accesibilidad/revision_teclado.py"
@@ -18976,6 +18991,9 @@
 "Escribe parte del nombre de un sonido o de lo que significa, y te salen los que coinciden, cada uno con su grupo. No hace falta poner las tildes.": [
 "juego/menus_juego.py"
 ],
+"Escribe trampas si o trampas no.": [
+"servidor/nucleo.py"
+],
 "Escribe un texto con todas las frases de las misiones y el nombre de archivo de cada grabación.": [
 "editor/ventana.py"
 ],
@@ -19436,6 +19454,9 @@
 ],
 "Esta noche viene medio Ayuntamiento y me falta lo del cóctel de la casa. Pásate por La Trastienda y tráemelo. Quédate dos para ti.": [
 "data/mods/noches_de_neon.json"
+],
+"Esta orden solo se puede dar desde la consola o el panel del servidor.": [
+"servidor/nucleo.py"
 ],
 "Esta partida es de una versión más nueva del juego, formato {v}. Actualiza el juego para cargarla.": [
 "juego/partida.py"
@@ -35712,6 +35733,9 @@
 "servidor/opciones.py"
 ],
 "Permitir el modo pasivo": [
+"servidor/opciones.py"
+],
+"Permitir menú de trampas": [
 "servidor/opciones.py"
 ],
 "Pero si ya lo sabes, {tu}. {yo}, el de siempre.": [
@@ -53972,6 +53996,9 @@
 "perdon|perdona|lo siento|disculpa|disculpame|no queria|ha sido sin querer|mis disculpas": [
 "juego/respuestas_datos2.py"
 ],
+"permite o bloquea el menú de trampas en este servidor (solo desde consola o panel)": [
+"servidor/nucleo.py"
+],
 "persona": [
 "juego/atracos.py"
 ],
@@ -54520,6 +54547,9 @@
 ],
 "si es hombre o mujer, o que dice él mismo, tienen más formas: se indican debajo de cada una.": [
 "juego/voces.py"
+],
+"si o no": [
+"servidor/nucleo.py"
 ],
 "si tienes perro, le pides que busque por el olfato el objeto más cercano": [
 "juego/ayuda.py"

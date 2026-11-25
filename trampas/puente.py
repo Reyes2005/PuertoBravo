@@ -6,6 +6,7 @@ import math
 import os
 import queue
 import random
+import re
 import secrets
 import socket
 import sys
@@ -61,43 +62,194 @@ def es_multijugador(app) -> bool:
         return False
 
 
+def servidor_permite_trampas(app) -> bool:
+    """True únicamente si el juego está en un servidor dedicado cuyo dueño habilitó permitir_trampas."""
+    if app is None:
+        return False
+    p = getattr(app, "partida", None)
+    if p is not None:
+        if not getattr(p, "en_servidor", False):
+            return False
+        if getattr(p, "sv_espera", None) is not None or getattr(p, "servidor", None) is not None:
+            return False
+        sv = getattr(p, "sv", None)
+        info = sv.get("info") if isinstance(sv, dict) else None
+        return isinstance(info, dict) and bool(info.get("permitir_trampas", False))
+    enlace = getattr(app, "enlace", None)
+    if enlace is not None:
+        ok = getattr(enlace, "ok", None)
+        info = ok.get("servidor") if isinstance(ok, dict) else None
+        return isinstance(info, dict) and bool(info.get("permitir_trampas", False))
+    return False
+
+
+def puente_bloqueado(app) -> bool:
+    """True cuando el puente debe quedar anulado (amigos siempre, o servidor sin permiso del dueño)."""
+    return es_multijugador(app) and not servidor_permite_trampas(app)
+
+
 def _en_linea_bloqueado(partida) -> bool:
     if partida is None:
         return False
-    return es_multijugador(getattr(partida, "app", None)) or bool(getattr(partida, "en_servidor", False))
+    app = getattr(partida, "app", None)
+    if app is not None:
+        return puente_bloqueado(app)
+    if getattr(partida, "en_servidor", False):
+        sv = getattr(partida, "sv", None)
+        info = sv.get("info") if isinstance(sv, dict) else None
+        return not (isinstance(info, dict) and bool(info.get("permitir_trampas", False)))
+    return bool(getattr(partida, "red", None) is not None or getattr(partida, "servidor", None) is not None or getattr(partida, "remotos", None))
+
+
+_RE_ENTERO = re.compile(r"[+-]?\d+")
+_CONSTANTES_NO_FINITAS = {"nan", "+nan", "-nan", "inf", "+inf", "-inf", "infinity", "+infinity", "-infinity"}
+
+
+def _rechazar_constante_json(nombre: str):
+    raise ValueError(f"Error de sintaxis: no se permite el valor {nombre!r} (usa solo números finitos). No se modificó ni añadió nada.")
+
+
+def _validar_finito_recursivo(val) -> None:
+    if isinstance(val, float) and not math.isfinite(val):
+        raise ValueError("Error de valor: no se permiten números infinitos o NaN. No se modificó ni añadió nada.")
+    if isinstance(val, (list, tuple)):
+        for elem in val:
+            _validar_finito_recursivo(elem)
+    elif isinstance(val, dict):
+        for elem in val.values():
+            _validar_finito_recursivo(elem)
+
+
+def validar_clave_inspector(objetivo: str, clave: str) -> str:
+    """Valida el nombre de clave o atributo antes de usarlo o enviarlo desde el Inspector."""
+    limpia = str(clave or "").strip()
+    if not limpia:
+        raise ValueError("Falta el nombre de la clave. No se modificó ni añadió nada.")
+    if len(limpia) > 80 or any(c in limpia for c in "\x00\n\r\t"):
+        raise ValueError("Nombre de clave inválido (contiene caracteres de control o supera 80 caracteres). No se modificó ni añadió nada.")
+    if objetivo in ("jugador", "vehiculo", "vehiculo_actual", "persona") and limpia.startswith("_"):
+        raise ValueError(f"Atributo interno o protegido no editable ({limpia}). No se modificó ni añadió nada.")
+    return limpia
+
+
+def parsear_valor_inspector(raw, referencia=None, *, es_nuevo: bool = False, objetivo: str = ""):
+    """Valida estrictamente un valor del Inspector; falla con mensaje claro ante cualquier error de sintaxis o tipo."""
+    if isinstance(raw, str) and "\x00" in raw:
+        raise ValueError("El valor contiene caracteres nulos no permitidos. No se modificó ni añadió nada.")
+
+    if referencia is not None:
+        if isinstance(referencia, bool):
+            if isinstance(raw, bool):
+                return raw
+            if isinstance(raw, int) and not isinstance(raw, bool) and raw in (0, 1):
+                return bool(raw)
+            txt = str(raw).strip().lower()
+            if txt in ("1", "true", "si", "sí", "on", "verdadero"):
+                return True
+            if txt in ("0", "false", "no", "off", "falso"):
+                return False
+            raise ValueError(f"Error de sintaxis/tipo: se esperaba un booleano (true/false o sí/no), recibido {raw!r}. No se modificó ni añadió nada.")
+
+        if isinstance(referencia, int) and not isinstance(referencia, bool):
+            if isinstance(raw, int) and not isinstance(raw, bool):
+                return raw
+            if isinstance(raw, float):
+                if math.isfinite(raw) and raw.is_integer():
+                    return int(raw)
+                raise ValueError(f"Error de tipo: se esperaba un número entero exacto, recibido {raw!r}. No se modificó ni añadió nada.")
+            txt = str(raw).strip()
+            if not _RE_ENTERO.fullmatch(txt):
+                raise ValueError(f"Error de sintaxis/tipo: se esperaba un número entero válido (ej. 100), recibido {raw!r}. No se modificó ni añadió nada.")
+            return int(txt)
+
+        if isinstance(referencia, float):
+            if isinstance(raw, bool):
+                raise ValueError("Error de tipo: se esperaba un número decimal, no un booleano. No se modificó ni añadió nada.")
+            try:
+                val = float(raw.strip() if isinstance(raw, str) else raw)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"Error de sintaxis/tipo: se esperaba un número decimal válido, recibido {raw!r}. No se modificó ni añadió nada.") from exc
+            if not math.isfinite(val):
+                raise ValueError("Error de valor: no se permiten números infinitos o NaN. No se modificó ni añadió nada.")
+            return val
+
+        if isinstance(referencia, (list, dict)):
+            esperado = "una lista JSON ([...])" if isinstance(referencia, list) else "un diccionario JSON ({...})"
+            if isinstance(raw, str):
+                txt = raw.strip()
+                if not txt:
+                    raise ValueError(f"El valor está vacío: se esperaba {esperado}. No se modificó ni añadió nada.")
+                try:
+                    parsed = json.loads(txt, parse_constant=_rechazar_constante_json)
+                except json.JSONDecodeError as exc:
+                    pista = " Recuerda usar comillas dobles (\") en lugar de comillas simples (')." if "'" in txt else ""
+                    raise ValueError(f"Error de sintaxis JSON (línea {exc.lineno}, columna {exc.colno}): {exc.msg}.{pista} No se modificó ni añadió nada.") from exc
+            else:
+                parsed = raw
+            if isinstance(referencia, list) and not isinstance(parsed, list):
+                raise ValueError(f"Error de tipo: se esperaba {esperado}. No se modificó ni añadió nada.")
+            if isinstance(referencia, dict) and not isinstance(parsed, dict):
+                raise ValueError(f"Error de tipo: se esperaba {esperado}. No se modificó ni añadió nada.")
+            _validar_finito_recursivo(parsed)
+            return parsed
+
+        if isinstance(referencia, str):
+            return raw if isinstance(raw, str) else str(raw)
+
+    # Sin referencia previa (clave nueva en stats o atributo actualmente None)
+    if not isinstance(raw, str):
+        _validar_finito_recursivo(raw)
+        return raw
+
+    txt = raw.strip()
+    if not txt:
+        raise ValueError("El valor está vacío. Escribe un valor válido (número, booleano, texto o JSON). No se modificó ni añadió nada.")
+    bajo = txt.lower()
+    if bajo in _CONSTANTES_NO_FINITAS:
+        raise ValueError(f"Error de valor: no se permite {txt!r} (usa solo números finitos). No se modificó ni añadió nada.")
+    if bajo in ("null", "none"):
+        return None
+    if bajo == "true":
+        return True
+    if bajo == "false":
+        return False
+    if txt[0] in "'" or txt[-1] in "'":
+        raise ValueError("Error de sintaxis JSON: usa comillas dobles (\") en lugar de comillas simples ('). No se modificó ni añadió nada.")
+    if txt[0] in '{["' or txt[-1] in '}]"':
+        try:
+            parsed = json.loads(txt, parse_constant=_rechazar_constante_json)
+        except json.JSONDecodeError as exc:
+            pista = " Recuerda usar comillas dobles (\") en lugar de comillas simples (')." if "'" in txt else ""
+            raise ValueError(f"Error de sintaxis JSON (línea {exc.lineno}, columna {exc.colno}): {exc.msg}.{pista} No se modificó ni añadió nada.") from exc
+        _validar_finito_recursivo(parsed)
+        return parsed
+    try:
+        parsed = json.loads(txt, parse_constant=_rechazar_constante_json)
+        _validar_finito_recursivo(parsed)
+        return parsed
+    except json.JSONDecodeError as exc:
+        if (es_nuevo and objetivo == "stats") or any(ch in txt for ch in '{}[]:,"\'') or txt[0] in "+-0123456789":
+            raise ValueError(
+                f"Error de sintaxis en el valor {txt!r}. Usa JSON válido (número, booleano, lista [...], diccionario {{...}} o texto entre comillas dobles). "
+                "No se modificó ni añadió nada."
+            ) from exc
+    return txt
 
 
 def _convertir_valor(raw, referencia=None):
     """Convierte texto o valor JSON al tipo adecuado, respetando el tipo existente si lo hay."""
-    if isinstance(referencia, bool):
-        if isinstance(raw, bool):
-            return raw
-        if isinstance(raw, (int, float)):
-            return bool(raw)
-        txt = str(raw).strip().lower()
-        if txt in ("1", "true", "si", "sí", "on", "verdadero"):
-            return True
-        if txt in ("0", "false", "no", "off", "falso"):
-            return False
-        raise ValueError(f"Valor booleano no válido: {raw!r}")
-    if isinstance(referencia, int) and not isinstance(referencia, bool):
-        return int(float(raw))
-    if isinstance(referencia, float):
-        return float(raw)
-    if isinstance(referencia, (list, dict)) and isinstance(raw, str):
-        parsed = json.loads(raw)
-        if isinstance(referencia, list) and not isinstance(parsed, list):
-            raise ValueError("Se esperaba una lista JSON.")
-        if isinstance(referencia, dict) and not isinstance(parsed, dict):
-            raise ValueError("Se esperaba un objeto JSON.")
-        return parsed
+    if isinstance(referencia, (bool, int, float, list, dict)):
+        return parsear_valor_inspector(raw, referencia)
     if isinstance(raw, str):
         txt = raw.strip()
-        if txt.lower() in ("true", "false", "null") or (txt.startswith(("{", "[")) and txt.endswith(("}", "]"))):
-            try:
-                return json.loads(txt.lower() if txt.lower() in ("true", "false", "null") else txt)
-            except ValueError:
-                pass
+        if txt.lower() in _CONSTANTES_NO_FINITAS:
+            raise ValueError(f"Valor numérico no finito no permitido: {raw!r}")
+        if txt.lower() in ("true", "false", "null") or txt.startswith(("{", "[")):
+            parsed = json.loads(txt.lower() if txt.lower() in ("true", "false", "null") else txt, parse_constant=_rechazar_constante_json)
+            _validar_finito_recursivo(parsed)
+            return parsed
+    elif isinstance(raw, float) and not math.isfinite(raw):
+        raise ValueError("No se permiten valores numéricos infinitos o NaN.")
     return raw
 
 
@@ -349,6 +501,8 @@ def _recolectar_estado(app) -> dict:
     habs = {k: {"xp": round(float(j.hab.get(k, 0.0)), 1), "nivel": p.nivel(k)} for k in j.hab}
     base.update({
         "en_linea": _en_linea_bloqueado(p),
+        "en_servidor": bool(getattr(p, "en_servidor", False)),
+        "trampas_servidor_permitidas": servidor_permite_trampas(app),
         "mapa": {"id": p.mundo.id, "nombre": p.mundo.nombre, "tipo": p.mundo.tipo, "barrio_id": barrio.get("id"), "barrio": barrio.get("nombre")},
         "pos": {"x": round(float(px), 2), "y": round(float(py), 2), "rumbo": round(float(j.rumbo), 1)},
         "tiempo": {"dia": int(p.dia), "reloj": round(float(p.reloj), 2), "hora_txt": p.hora_txt(), "lluvia": bool(p.lluvia), "dia_azar": getattr(p, "dia_azar", {})},
@@ -429,9 +583,32 @@ def _punto_spawn_vehiculo(p, mo: dict):
     return x, y, d
 
 
+def _validar_integridad_campo(objetivo: str, clave: str, nuevo) -> None:
+    """Comprueba invariantes estructurales de contenedores o rangos críticos antes de escribir."""
+    if objetivo == "jugador":
+        if clave == "armas":
+            if not isinstance(nuevo, dict) or not all(isinstance(k, str) and k and isinstance(v, dict) for k, v in nuevo.items()):
+                raise ValueError("Formato inválido en 'armas': cada arma debe ser un objeto JSON con clave no vacía. No se modificó nada.")
+        elif clave in ("objetos", "sustancias", "hab", "rep_bandas"):
+            if not isinstance(nuevo, dict) or not all(
+                isinstance(k, str) and k and isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(float(v))
+                for k, v in nuevo.items()
+            ):
+                raise ValueError(f"Formato inválido en '{clave}': todas las cantidades deben ser números finitos. No se modificó nada.")
+        elif clave == "mochila":
+            if not isinstance(nuevo, list) or not all(isinstance(x, dict) for x in nuevo):
+                raise ValueError("Formato inválido en 'mochila': debe ser una lista de diccionarios. No se modificó nada.")
+        elif clave in ("salud", "salud_max"):
+            if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) <= 0:
+                raise ValueError(f"'{clave}' debe ser un número positivo mayor que 0. No se modificó nada.")
+        elif clave in ("dinero", "banco"):
+            if not isinstance(nuevo, int) or isinstance(nuevo, bool) or nuevo < 0:
+                raise ValueError(f"'{clave}' debe ser un número entero mayor o igual a 0. No se modificó nada.")
+
+
 def despachar(app, cmd: str, args: dict | None = None):
     """Ejecuta un comando del puente sobre la instancia viva de App y Partida."""
-    if es_multijugador(app):
+    if puente_bloqueado(app):
         raise ValueError("Comunicación anulada: modo multijugador activo.")
     args = args or {}
     from juego import VERSION, azar, config, gente, mochila, sistemas
@@ -445,7 +622,9 @@ def despachar(app, cmd: str, args: dict | None = None):
             "version": VERSION,
             "pid": os.getpid(),
             "en_partida": p is not None,
-            "en_linea": False,
+            "en_linea": puente_bloqueado(app),
+            "en_servidor": bool(p is not None and getattr(p, "en_servidor", False)),
+            "trampas_servidor_permitidas": servidor_permite_trampas(app),
         }
 
     if cmd == "catalogos":
@@ -459,20 +638,25 @@ def despachar(app, cmd: str, args: dict | None = None):
             raise ValueError("Bloqueado en servidores o partidas en línea.")
         cambios = args.get("cambios")
         if not isinstance(cambios, dict):
-            cambios = {args["clave"]: args["valor"]} if "clave" in args else {}
-        aplicados = {}
-        adultos_antes = app.cfg["adultos"]
-        for clave, val in cambios.items():
+            if "clave" not in args:
+                raise ValueError("Falta la clave de configuración a modificar.")
+            cambios = {args["clave"]: args.get("valor")}
+        preparados = {}
+        for raw_clave, val in cambios.items():
+            clave = validar_clave_inspector("cfg", str(raw_clave))
             if clave not in app.cfg.v:
-                raise ValueError(f"Opción desconocida en cfg: {clave}")
-            conv = _convertir_valor(val, config.POR_DEFECTO.get(clave, app.cfg.v[clave]))
+                raise ValueError(f"Opción desconocida en cfg: {clave}. No se modificó nada.")
+            ref = config.POR_DEFECTO.get(clave, app.cfg.v[clave])
+            conv = parsear_valor_inspector(val, ref, es_nuevo=False, objetivo="cfg")
             if clave in config.OPCIONES and conv not in config.OPCIONES[clave]:
-                raise ValueError(f"Valor no permitido para {clave}: {conv}")
+                raise ValueError(f"Valor no permitido para {clave}: {conv}. Opciones válidas: {config.OPCIONES[clave]}. No se modificó nada.")
+            preparados[clave] = conv
+        adultos_antes = app.cfg["adultos"]
+        for clave, conv in preparados.items():
             app.cfg[clave] = conv
-            aplicados[clave] = conv
-        if "adultos" in aplicados and app.cfg["adultos"] != adultos_antes:
+        if "adultos" in preparados and app.cfg["adultos"] != adultos_antes:
             app.aplicar_adultos()
-        return {"aplicados": aplicados}
+        return {"aplicados": preparados}
 
     if p is None:
         raise ValueError("No hay ninguna partida cargada en este momento.")
@@ -518,41 +702,53 @@ def despachar(app, cmd: str, args: dict | None = None):
 
     if cmd == "inspector.escribir":
         objetivo = args.get("objetivo", "jugador")
-        clave = str(args.get("clave", ""))
+        clave = validar_clave_inspector(str(objetivo), str(args.get("clave", "")))
         valor = args.get("valor")
-        if not clave:
-            raise ValueError("Falta la clave a modificar.")
         if objetivo == "jugador":
-            if not hasattr(j, clave) or clave in ("veh",):
-                raise ValueError(f"Atributo inexistente o protegido en Jugador: {clave}")
+            if not hasattr(j, clave) or clave in ("veh",) or callable(getattr(j, clave)):
+                raise ValueError(f"Atributo inexistente o protegido en Jugador: {clave}. No se modificó ni añadió nada.")
             actual = getattr(j, clave)
-            setattr(j, clave, _convertir_valor(valor, actual))
+            nuevo = parsear_valor_inspector(valor, actual, es_nuevo=False, objetivo="jugador")
+            _validar_integridad_campo("jugador", clave, nuevo)
+            setattr(j, clave, nuevo)
         elif objetivo == "stats":
+            existe = clave in j.stats
             actual = j.stats.get(clave)
-            j.stats[clave] = _convertir_valor(valor, actual)
+            nuevo = parsear_valor_inspector(valor, actual if existe else None, es_nuevo=not existe, objetivo="stats")
+            j.stats[clave] = nuevo
         elif objetivo == "cfg":
-            return despachar(app, "cfg.set", {"clave": clave, "valor": valor})
+            res_cfg = despachar(app, "cfg.set", {"clave": clave, "valor": valor})
+            return {"ok": True, "clave": clave, "valor": _json_seguro(res_cfg["aplicados"][clave])}
         elif objetivo in ("vehiculo", "vehiculo_actual"):
             v = _buscar_vehiculo(p, args.get("id"))
             if v is None:
-                raise ValueError("Vehículo no encontrado.")
-            if clave in ("canal", "sirena", "alarma", "fuego"):
-                raise ValueError(f"Campo de audio protegido: {clave}")
+                raise ValueError("Vehículo no encontrado. No se modificó nada.")
+            if clave in ("canal", "sirena", "alarma", "fuego", "pasajeros", "modelo"):
+                raise ValueError(f"Campo protegido en vehículo: {clave}. No se modificó nada.")
             if clave in ("vel_max", "acel", "freno", "tono") and not hasattr(v, clave):
+                nuevo = parsear_valor_inspector(valor, v.modelo.get(clave), es_nuevo=False, objetivo="vehiculo")
+                if clave in ("vel_max", "acel", "freno") and (not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or float(nuevo) <= 0):
+                    raise ValueError(f"'{clave}' debe ser un número positivo mayor que 0. No se modificó nada.")
                 _asegurar_modelo_propio(p, v)
-                v.modelo[clave] = _convertir_valor(valor, v.modelo.get(clave))
+                v.modelo[clave] = nuevo
             else:
-                actual = getattr(v, clave, None)
-                setattr(v, clave, _convertir_valor(valor, actual))
+                if not hasattr(v, clave) or callable(getattr(v, clave)):
+                    raise ValueError(f"Atributo inexistente o protegido en Vehículo: {clave}. No se modificó ni añadió nada.")
+                actual = getattr(v, clave)
+                nuevo = parsear_valor_inspector(valor, actual, es_nuevo=False, objetivo="vehiculo")
+                setattr(v, clave, nuevo)
         elif objetivo == "persona":
             per = _buscar_persona(p, args.get("id"))
             if per is None:
-                raise ValueError("Persona no encontrada.")
-            actual = getattr(per, clave, None)
-            setattr(per, clave, _convertir_valor(valor, actual))
+                raise ValueError("Persona no encontrada. No se modificó nada.")
+            if not hasattr(per, clave) or callable(getattr(per, clave)):
+                raise ValueError(f"Atributo inexistente o protegido en Persona: {clave}. No se modificó ni añadió nada.")
+            actual = getattr(per, clave)
+            nuevo = parsear_valor_inspector(valor, actual, es_nuevo=False, objetivo="persona")
+            setattr(per, clave, nuevo)
         else:
-            raise ValueError(f"Objetivo no soportado: {objetivo}")
-        return {"ok": True}
+            raise ValueError(f"Objetivo no soportado: {objetivo}. No se modificó ni añadió nada.")
+        return {"ok": True, "clave": clave, "valor": _json_seguro(nuevo)}
 
     if cmd == "jugador.set":
         accion = args.get("accion")
@@ -1268,7 +1464,7 @@ class ServidorPuente:
     def iniciar(self) -> None:
         if self._cerrado or self._activo:
             return
-        if es_multijugador(self.app):
+        if puente_bloqueado(self.app):
             self._suspendido = True
             return
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1312,7 +1508,7 @@ class ServidorPuente:
                 continue
             except OSError:
                 break
-            if es_multijugador(self.app):
+            if puente_bloqueado(self.app):
                 try:
                     conn.close()
                 except OSError:
@@ -1322,18 +1518,18 @@ class ServidorPuente:
 
     def _atender_conexion(self, conn: socket.socket) -> None:
         with conn:
-            if es_multijugador(self.app) or not self._activo:
+            if puente_bloqueado(self.app) or not self._activo:
                 return
             conn.settimeout(5.0)
             try:
                 linea = leer_linea_socket(conn, MAX_MENSAJE)
-                if not linea or es_multijugador(self.app):
+                if not linea or puente_bloqueado(self.app):
                     return
                 req = json.loads(linea)
             except Exception as exc:
                 self._enviar(conn, {"ok": False, "error": f"Petición inválida: {exc}"})
                 return
-            if es_multijugador(self.app) or not self._activo:
+            if puente_bloqueado(self.app) or not self._activo:
                 return
             if not isinstance(req, dict) or not secrets.compare_digest(str(req.get("token", "")), self.token):
                 self._enviar(conn, {"ok": False, "error": "Token de autenticación inválido."})
@@ -1393,7 +1589,7 @@ class ServidorPuente:
         """Drena comandos pendientes desde el hilo principal de Pygame."""
         if self._cerrado:
             return
-        if es_multijugador(self.app):
+        if puente_bloqueado(self.app):
             if self._activo or self._ficha_ruta is not None or not self._cola.empty():
                 self.suspender()
             else:

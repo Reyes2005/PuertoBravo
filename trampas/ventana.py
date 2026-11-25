@@ -6,6 +6,7 @@ import wx
 
 from . import NOMBRE, descubrir_instancias
 from .protocolo import ClienteTrampas, ErrorPuente
+from .puente import parsear_valor_inspector, validar_clave_inspector
 
 try:
     from editor.accesibilidad import voz as _voz
@@ -96,6 +97,7 @@ class VentanaTrampas(wx.Frame):
         self._ultimo_resumen: str = ""
         self._ultimas_claves_veh: list[str] = []
         self._ultimas_claves_npc: list[str] = []
+        self._ultimo_error_puente: str = ""
 
         panel = wx.Panel(self)
         raiz = wx.BoxSizer(wx.VERTICAL)
@@ -1030,6 +1032,13 @@ class VentanaTrampas(wx.Frame):
         fila_ed.Add(self.btn_insp_escribir, 0, wx.ALL, 4)
         s.Add(fila_ed, 0, wx.EXPAND | wx.ALL, 4)
 
+        _, self.txt_insp_estado = crear_campo(
+            pag, "Estado del &inspector:", wx.TextCtrl, style=wx.TE_READONLY,
+            ayuda="Muestra errores de sintaxis o confirmación de cambios del inspector.",
+            sizer=s, horizontal=True,
+        )
+        self.txt_insp_estado.SetValue("Listo. Selecciona un ámbito y pulsa Leer ámbito.")
+
         self.btn_insp_leer.Bind(wx.EVT_BUTTON, lambda e: self._leer_inspector())
         self.sel_insp_obj.Bind(wx.EVT_CHOICE, lambda e: self._leer_inspector())
         self.txt_insp_filtro.Bind(wx.EVT_TEXT, lambda e: self._filtrar_inspector())
@@ -1068,10 +1077,10 @@ class VentanaTrampas(wx.Frame):
             self.sel_instancia.Set(["(ninguna detectada)"])
             self.sel_instancia.SetSelection(0)
             self.txt_conexion.SetValue(
-                "Sin conexión con Puerto Bravo (el juego está cerrado o en modo multijugador, donde el puente queda totalmente anulado)."
+                "Sin conexión con Puerto Bravo (el juego está cerrado o en multijugador sin permiso del dueño del servidor)."
             )
             if anunciar:
-                _hablar("No se encontró Puerto Bravo en modo un jugador.")
+                _hablar("No se encontró Puerto Bravo con el puente habilitado.")
             return False
         etiquetas = [f"PID {f['pid']} — v{f.get('version', '?')} (puerto {f['puerto']})" for f in self.instancias]
         sel_idx = max(0, min(self.sel_instancia.GetSelection(), len(self.instancias) - 1))
@@ -1097,9 +1106,11 @@ class VentanaTrampas(wx.Frame):
             return False
 
     def _ejecutar(self, cmd: str, args: dict | None = None, mensaje_voz: str = ""):
+        self._ultimo_error_puente = ""
         if self.cliente is None:
             if not self.conectar(anunciar=False):
-                mostrar_error(self, "Conecta primero con Puerto Bravo en modo un jugador.", "Sin conexión")
+                self._ultimo_error_puente = "Conecta primero con Puerto Bravo (un jugador o servidor con trampas permitidas)."
+                mostrar_error(self, self._ultimo_error_puente, "Sin conexión")
                 return None
         try:
             res = self.cliente.llamar(cmd, **(args or {}))
@@ -1109,6 +1120,7 @@ class VentanaTrampas(wx.Frame):
             self.refrescar_estado(anunciar_error=False, forzar_sync=True)
             return res
         except ErrorPuente as exc:
+            self._ultimo_error_puente = str(exc)
             if "multijugador" in str(exc).lower() or "sin conexión" in str(exc).lower():
                 self.cliente = None
                 self.txt_conexion.SetValue(str(exc))
@@ -1147,6 +1159,8 @@ class VentanaTrampas(wx.Frame):
                 f"Día {t.get('dia')} {t.get('hora_txt')} | "
                 f"Salud {j.get('salud')}/{j.get('salud_max')} | {j.get('dinero')} € | {j.get('estrellas')}★"
             )
+            if est.get("en_servidor") and est.get("trampas_servidor_permitidas"):
+                estado_txt += " | Servidor (trampas permitidas)"
             if self.txt_conexion.GetValue() != estado_txt:
                 self.txt_conexion.SetValue(estado_txt)
 
@@ -1169,7 +1183,7 @@ class VentanaTrampas(wx.Frame):
         except ErrorPuente as exc:
             self.cliente = None
             self.txt_conexion.SetValue(
-                f"Desconectado ({exc}). Si entraste en servidor o con amigos, el puente se anula automáticamente."
+                f"Desconectado ({exc}). En multijugador el puente se anula salvo que el dueño del servidor habilite permitir_trampas."
             )
             if anunciar_error:
                 mostrar_error(self, str(exc), "Error al actualizar")
@@ -1696,17 +1710,52 @@ class VentanaTrampas(wx.Frame):
         self.txt_insp_clave.SetValue(clave)
         self.txt_insp_valor.SetValue(val if isinstance(val, str) else json.dumps(val, ensure_ascii=False))
 
+    def _error_inspector(self, mensaje: str, titulo: str, foco: wx.Window) -> None:
+        self.txt_insp_estado.SetValue(mensaje)
+        self.SetStatusText(mensaje)
+        _hablar(mensaje)
+        mostrar_error(self, mensaje, titulo)
+        foco.SetFocus()
+
     def _escribir_inspector(self) -> None:
-        clave = self.txt_insp_clave.GetValue().strip()
-        if not clave:
+        objetivo = self.sel_insp_obj.GetStringSelection()
+        raw_clave = self.txt_insp_clave.GetValue()
+        raw_val = self.txt_insp_valor.GetValue()
+        try:
+            clave = validar_clave_inspector(objetivo, raw_clave)
+        except ValueError as exc:
+            self._error_inspector(str(exc), "Error en el Inspector", self.txt_insp_clave)
             return
+
+        campos = getattr(self, "_inspector_campos", {}) or {}
+        existe = clave in campos
+        if campos and objetivo in ("jugador", "cfg", "vehiculo_actual") and not existe:
+            if not (objetivo == "vehiculo_actual" and clave in ("vel_max", "acel", "freno", "tono")):
+                self._error_inspector(
+                    f"El campo {clave!r} no existe en {objetivo}. No se modificó ni añadió nada.",
+                    "Campo inexistente en el Inspector",
+                    self.txt_insp_clave,
+                )
+                return
+
+        ref = campos.get(clave) if existe else None
+        try:
+            parsear_valor_inspector(raw_val, ref, es_nuevo=not existe, objetivo=objetivo)
+        except ValueError as exc:
+            self._error_inspector(str(exc), "Error de sintaxis en el Inspector", self.txt_insp_valor)
+            return
+
         res = self._ejecutar(
             "inspector.escribir",
-            {"objetivo": self.sel_insp_obj.GetStringSelection(), "clave": clave, "valor": self.txt_insp_valor.GetValue()},
+            {"objetivo": objetivo, "clave": clave, "valor": raw_val},
             f"Campo {clave} actualizado.",
         )
         if res is not None:
+            self.txt_insp_estado.SetValue(f"Aplicado correctamente: {clave} = {json.dumps(res.get('valor'), ensure_ascii=False)}")
             self._leer_inspector()
+        elif self._ultimo_error_puente:
+            self.txt_insp_estado.SetValue(self._ultimo_error_puente)
+            self.txt_insp_valor.SetFocus()
 
 
 def ejecutar() -> None:

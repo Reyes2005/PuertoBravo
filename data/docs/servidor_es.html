@@ -394,6 +394,7 @@ a { color: #9fd0ff; }
 <li><code>copia</code>: hace una copia de seguridad.</li>
 <li><code>copias</code>: las copias de seguridad que hay.</li>
 <li><code>recargar</code>: vuelve a leer servidor.conf y aplica lo que se puede cambiar sin reiniciar.</li>
+<li><code>trampas si o no</code>: permite o bloquea el menú de trampas en este servidor (solo desde consola o panel).</li>
 <li><code>actualizar</code>: avisa a todos de que el servidor se reinicia para actualizarse, espera la cuenta atrás, lo guarda todo y lo para; los juegos esperan y vuelven a entrar solos cuando lo arranques otra vez. Detrás se pueden poner los segundos de aviso.</li>
 <li><code>reiniciar</code>: lo mismo, pero diciendo que es por mantenimiento. Detrás se pueden poner los segundos de aviso.</li>
 <li><code>apagar</code>: avisa a todos, lo guarda todo y para el servidor.</li>
@@ -817,6 +818,13 @@ a { color: #9fd0ff; }
 </ul>
 <h4>Permitir dos sesiones con la misma identidad: <code>varias_sesiones</code></h4>
 <p>Solo para pruebas. De serie, no: si alguien entra con su personaje desde otro sitio, la sesión anterior se cierra.</p>
+<ul>
+<li>Valores: si o no.</li>
+<li>De serie: <code>no</code>.</li>
+<li>Se aplica sin reiniciar el servidor.</li>
+</ul>
+<h4>Permitir menú de trampas: <code>permitir_trampas</code></h4>
+<p>Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el dueño del servidor permite usarlo aquí.</p>
 <ul>
 <li>Valores: si o no.</li>
 <li>De serie: <code>no</code>.</li>

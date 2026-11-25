@@ -1014,6 +1014,14 @@ class EnLinea:
         self.decir(tr_servidor(str(m.get("texto", ""))))
         self.voz.apuntar_mensaje(tr_servidor(str(m.get("texto", ""))))
 
+    def _svm_trampas(self, m):
+        permitir = bool(m.get("permitir"))
+        if isinstance(self.sv.get("info"), dict):
+            self.sv["info"]["permitir_trampas"] = permitir
+        srv_puente = getattr(self.app, "_puente_trampas", None)
+        if srv_puente is not None and not permitir:
+            srv_puente.suspender()
+
     def _svm_pong(self, m):
         pass
 

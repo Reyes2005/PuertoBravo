@@ -317,3 +317,186 @@ def test_ganchos_y_gui_wx_sincronizada(puente_activo):
         v.Destroy()
         app_wx.ProcessPendingEvents()
         app_wx.Destroy()
+
+
+def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch):
+    import threading
+    robot, p, srv, cli, _, _ = puente_activo
+    p.j.dinero = 500
+    p.j.salud = 90.0
+    p.j.objetos["botiquin"] = 2
+
+    dinero_orig = p.j.dinero
+    salud_orig = p.j.salud
+    objetos_orig = dict(p.j.objetos)
+    armas_orig = dict(p.j.armas)
+    stats_orig = dict(p.j.stats)
+    cfg_orig = dict(robot.app.cfg.v)
+    per = p.personas[0]
+    per_salud_orig = per.salud
+    veh = p.vehiculos[0]
+    modelo_orig_ref = veh.modelo
+
+    casos_invalidos = [
+        ("jugador", "objetos", '{"botiquin": 5,'),
+        ("jugador", "objetos", "{'botiquin': 5}"),
+        ("jugador", "objetos", '{"botiquin": "muchos"}'),
+        ("jugador", "armas", '{"pistola": 123}'),
+        ("jugador", "salud", "NaN"),
+        ("jugador", "salud", "inf"),
+        ("jugador", "salud", "0"),
+        ("jugador", "dinero", "12.5"),
+        ("jugador", "dinero", "-10"),
+        ("jugador", "atributo_inventado", "123"),
+        ("jugador", "_oculto", "1"),
+        ("stats", "nueva_stat", "[1, 2,"),
+        ("stats", "nueva_stat", "texto sin comillas"),
+        ("stats", "nueva_stat", ""),
+        ("stats", "nueva_stat", "NaN"),
+        ("vehiculo_actual", "vel_max", "abc"),
+        ("vehiculo_actual", "vel_max", "-5"),
+        ("vehiculo_actual", "campo_inexistente", "42"),
+        ("persona", "campo_inexistente", "99"),
+        ("cfg", "opcion_inexistente", "true"),
+    ]
+    for objetivo, clave, valor in casos_invalidos:
+        extra = {"id": per.id} if objetivo == "persona" else ({"id": veh.id} if objetivo == "vehiculo_actual" else {})
+        with pytest.raises(ErrorPuente) as exc_info:
+            _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo=objetivo, clave=clave, valor=valor, **extra)
+        assert exc_info.value
+
+    # Verificación estricta: ningún error de sintaxis o validación modificó ni añadió nada
+    assert p.j.dinero == dinero_orig
+    assert p.j.salud == salud_orig
+    assert p.j.objetos == objetos_orig
+    assert p.j.armas == armas_orig
+    assert {k: v for k, v in p.j.stats.items() if k != "tiempo"} == {k: v for k, v in stats_orig.items() if k != "tiempo"}
+    assert "nueva_stat" not in p.j.stats
+    assert not hasattr(p.j, "atributo_inventado")
+    assert not hasattr(p.j, "_oculto")
+    assert not hasattr(veh, "campo_inexistente")
+    assert veh.modelo is modelo_orig_ref
+    assert per.salud == per_salud_orig
+    assert not hasattr(per, "campo_inexistente")
+    assert robot.app.cfg.v == cfg_orig
+
+    # Una escritura válida en stats y en objetos sí funciona
+    res_stat = _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="stats", clave="nueva_stat", valor="42")
+    assert res_stat["ok"] is True and p.j.stats["nueva_stat"] == 42
+    res_obj = _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="jugador", clave="objetos", valor='{"botiquin": 4}')
+    assert res_obj["ok"] is True and p.j.objetos == {"botiquin": 4}
+
+    # También desde la GUI wx: bloquea localmente errores de sintaxis, informa al usuario y no altera el juego
+    wx = pytest.importorskip("wx")
+    try:
+        app_wx = wx.App(False)
+    except Exception as exc:
+        pytest.skip(f"Sin entorno gráfico wx disponible: {exc}")
+    import trampas.ventana as V
+    errores_gui = []
+    monkeypatch.setattr(V, "mostrar_error", lambda padre, msg, tit="Error": errores_gui.append((tit, msg)))
+
+    wx.HelpProvider.Set(wx.SimpleHelpProvider())
+    v = V.VentanaTrampas(auto_conectar=False, intervalo_ms=0)
+    parar = threading.Event()
+
+    def bombear():
+        while not parar.is_set():
+            srv.atender()
+            time.sleep(0.002)
+
+    hilo = threading.Thread(target=bombear, daemon=True)
+    hilo.start()
+    try:
+        assert v.conectar(False) is True
+        v.sel_insp_obj.SetStringSelection("stats")
+        v._leer_inspector()
+        stats_antes = dict(p.j.stats)
+
+        v.txt_insp_clave.SetValue("stat_rota")
+        v.txt_insp_valor.SetValue('{"x": [1, 2')
+        v._escribir_inspector()
+
+        assert len(errores_gui) == 1
+        assert "sintaxis" in errores_gui[0][1].lower()
+        assert "No se modificó ni añadió nada" in errores_gui[0][1]
+        assert v.txt_insp_estado.GetValue() == errores_gui[0][1]
+        assert v.txt_insp_valor.GetValue() == '{"x": [1, 2'
+        assert {k: val for k, val in p.j.stats.items() if k != "tiempo"} == {k: val for k, val in stats_antes.items() if k != "tiempo"}
+        assert "stat_rota" not in p.j.stats
+    finally:
+        parar.set()
+        hilo.join(timeout=1.0)
+        v.Close()
+        v.Destroy()
+        app_wx.ProcessPendingEvents()
+        app_wx.Destroy()
+
+
+def test_servidor_permite_trampas_solo_si_dueno_habilita(puente_activo, tmp_path):
+    from servidor import nucleo, opciones
+    from test_servidor import mundo
+
+    # 1. Opción del servidor por defecto bloqueada ("no")
+    assert opciones.POR_CLAVE["permitir_trampas"].defecto == "no"
+    assert opciones.validar_valor("permitir_trampas", "si") == ("si", None)
+    assert opciones.validar_valor("permitir_trampas", "no") == ("no", None)
+
+    srv_dir = tmp_path / "srv_datos"
+    sv_net = nucleo.Servidor({"datos": str(srv_dir), "puerto": 0, "cifrado": "no", "personajes": 0}, mundo())
+    enviados = []
+    sv_net._a_todos = lambda m, menos=None: enviados.append(m)
+
+    # Un administrador desde el chat del juego NO puede activar trampas; solo dueño desde consola/panel
+    r_chat = sv_net.orden("trampas si", "AdminJuego")
+    assert "consola o el panel" in r_chat
+    assert sv_net.cfg["permitir_trampas"] == "no"
+
+    r_on = sv_net.orden("trampas si", "consola")
+    assert "permitido" in r_on
+    assert sv_net.cfg["permitir_trampas"] == "si"
+    assert {"t": "trampas", "permitir": True} in enviados
+
+    r_off = sv_net.orden("trampas no", "consola")
+    assert "bloqueado" in r_off
+    assert sv_net.cfg["permitir_trampas"] == "no"
+    assert {"t": "trampas", "permitir": False} in enviados
+
+    # 2. En el juego conectado a un servidor: bloqueado por defecto, habilitado solo si el servidor lo permite
+    robot, p, srv, _, _, carpeta_fichas = puente_activo
+    p.en_servidor = True
+    p.sv = {"info": {"permitir_trampas": False}}
+    robot.app.paso(1 / 60)
+    assert srv._activo is False
+    assert descubrir_instancias(str(carpeta_fichas)) == []
+    with pytest.raises(ValueError, match="multijugador"):
+        puente.despachar(robot.app, "hola", {})
+
+    # El dueño del servidor permite trampas en vivo (_svm_trampas)
+    p._svm_trampas({"t": "trampas", "permitir": True})
+    robot.app.paso(1 / 60)
+    assert srv._activo is True
+    assert len(descubrir_instancias(str(carpeta_fichas))) == 1
+    cli, conn_info = _conectar_vivo(robot.app, str(carpeta_fichas))
+    assert conn_info["info"]["en_servidor"] is True
+    assert conn_info["info"]["trampas_servidor_permitidas"] is True
+
+    antes = p.j.dinero
+    res = _llamar_vivo(robot.app, cli, "jugador.set", dinero_delta=250)
+    assert res["jugador"]["dinero"] == antes + 250
+
+    # El dueño vuelve a bloquearlas en vivo: anulación inmediata
+    p._svm_trampas({"t": "trampas", "permitir": False})
+    robot.app.paso(1 / 60)
+    assert srv._activo is False
+    assert descubrir_instancias(str(carpeta_fichas)) == []
+    with pytest.raises(ErrorPuente):
+        _llamar_vivo(robot.app, cli, "jugador.set", dinero_delta=100)
+
+    # En modo con amigos (p.servidor / p.red), permanece siempre bloqueado
+    p.en_servidor = False
+    p.servidor = object()
+    p.sv = {"info": {"permitir_trampas": True}}
+    robot.app.paso(1 / 60)
+    assert srv._activo is False
+    assert descubrir_instancias(str(carpeta_fichas)) == []

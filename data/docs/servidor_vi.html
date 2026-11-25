@@ -394,6 +394,7 @@ a { color: #9fd0ff; }
 <li><code>backup (copia)</code>: tạo một bản sao lưu.</li>
 <li><code>backups (copias)</code>: danh sách các bản sao lưu hiện có.</li>
 <li><code>reload (recargar)</code>: đọc lại servidor.conf và áp dụng các thay đổi không cần khởi động lại.</li>
+<li><code>cheats (trampas) si hoặc no</code>: cho phép hoặc chặn bảng gian lận trên máy chủ này (chỉ từ bảng điều khiển hoặc giao diện quản lý).</li>
 <li><code>update (actualizar)</code>: thông báo cho toàn thể người chơi rằng máy chủ khởi động lại để cập nhật, đếm ngược, lưu dữ liệu và dừng lại; các máy khách sẽ chờ và tự động kết nối lại khi mở máy chủ. Có thể thêm số giây đếm ngược phía sau.</li>
 <li><code>restart (reiniciar)</code>: tương tự, nhưng thông báo lý do là bảo trì. Có thể thêm số giây đếm ngược phía sau.</li>
 <li><code>shutdown (apagar)</code>: thông báo cho toàn thể người chơi, lưu mọi dữ liệu và dừng máy chủ.</li>
@@ -817,6 +818,13 @@ a { color: #9fd0ff; }
 </ul>
 <h4>Cho phép hai phiên đăng nhập cùng thông tin định danh: <code>varias_sesiones</code></h4>
 <p>Chỉ dùng để thử nghiệm. Mặc định là no: nếu ai đó đăng nhập nhân vật từ nơi khác, phiên đăng nhập trước sẽ bị ngắt.</p>
+<ul>
+<li>Các giá trị: si (có) hoặc no (không).</li>
+<li>Mặc định: <code>no</code>.</li>
+<li>Được áp dụng ngay mà không cần khởi động lại máy chủ.</li>
+</ul>
+<h4>Cho phép bảng gian lận: <code>permitir_trampas</code></h4>
+<p>Với no, là mặc định, trò chơi sẽ vô hiệu hóa hoàn toàn bảng gian lận khi vào máy chủ này. Với si, chủ máy chủ cho phép dùng tại đây.</p>
 <ul>
 <li>Các giá trị: si (có) hoặc no (không).</li>
 <li>Mặc định: <code>no</code>.</li>

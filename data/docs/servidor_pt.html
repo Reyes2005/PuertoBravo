@@ -394,6 +394,7 @@ a { color: #9fd0ff; }
 <li><code>backup (copia)</code>: faz um backup.</li>
 <li><code>backups (copias)</code>: os backups que existem.</li>
 <li><code>reload (recargar)</code>: lê servidor.conf novamente e aplica o que pode ser alterado sem reiniciar.</li>
+<li><code>cheats (trampas) si ou no</code>: permite ou bloqueia o menu de trapaças neste servidor (somente pelo console ou painel).</li>
 <li><code>update (actualizar)</code>: avisa a todos que o servidor está reiniciando para atualizar, aguarda a contagem regressiva, salva tudo e para; os jogos esperam e voltam sozinhos quando você os inicia novamente. Você pode adicionar os segundos de aviso depois.</li>
 <li><code>restart (reiniciar)</code>: o mesmo, mas dizendo que é para manutenção. Você pode adicionar os segundos de aviso depois.</li>
 <li><code>shutdown (apagar)</code>: avisa todo mundo, salva tudo e para o servidor.</li>
@@ -816,6 +817,13 @@ a { color: #9fd0ff; }
 </ul>
 <h4>Permitir duas sessões com a mesma identidade: <code>varias_sesiones</code></h4>
 <p>Apenas para teste. Por padrão, não: se alguém entrar com seu personagem de outro lugar, a sessão anterior será encerrada.</p>
+<ul>
+<li>Valores: sim ou não.</li>
+<li>Padrão: <code>no</code>.</li>
+<li>Aplica-se sem reiniciar o servidor.</li>
+</ul>
+<h4>Permitir menu de trapaças: <code>permitir_trampas</code></h4>
+<p>Com no, que é o padrão, os jogos anulam completamente o menu de trapaças ao entrar neste servidor. Com si, o dono do servidor permite usá-lo aqui.</p>
 <ul>
 <li>Valores: sim ou não.</li>
 <li>Padrão: <code>no</code>.</li>
