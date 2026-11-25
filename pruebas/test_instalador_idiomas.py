@@ -24,26 +24,29 @@ def _idiomas():
     return sorted(c for c in os.listdir(carpeta) if os.path.isfile(os.path.join(carpeta, c, "textos.json")))
 
 
-def _bat(tmp_path, cod):
+def _bat(tmp_path, cod, monkeypatch):
+    monkeypatch.setenv("PUERTOBRAVO_IDIOMA", cod)          # manda sobre lo pedido: sin esto, todo saldría en el mismo idioma
     prog = tmp_path / "prog"
     nueva = tmp_path / "actualizacion" / "nueva"
     prog.mkdir(parents=True, exist_ok=True)
     nueva.mkdir(parents=True, exist_ok=True)
     (nueva / "PuertoBravo.exe").write_bytes(b"exe")
     i18n.cargar(cod)
+    assert i18n.actual() == cod
     ruta = A.escribir_instalador(str(nueva), str(prog), pid=4321, version="9.9.9")
     with open(ruta, encoding="utf-8") as f:
         return f.read()
 
 
-def test_el_bat_es_el_mismo_en_todos_los_idiomas(tmp_path):
+def test_el_bat_es_el_mismo_en_todos_los_idiomas(tmp_path, monkeypatch):
     antes = i18n.actual()
     try:
-        espanol = _bat(tmp_path, "es")
+        espanol = _bat(tmp_path, "es", monkeypatch)
         assert espanol.startswith("@echo off") and "goto fin" in espanol and '(goto) 2>nul & del "%~f0"' in espanol
         for cod in _idiomas():
-            assert _bat(tmp_path, cod) == espanol, f"El instalador sale distinto con el idioma {cod}: alguna orden de Windows va en tr()"
+            assert _bat(tmp_path, cod, monkeypatch) == espanol, f"El instalador sale distinto con el idioma {cod}: alguna orden de Windows va en tr()"
     finally:
+        monkeypatch.delenv("PUERTOBRAVO_IDIOMA", raising=False)
         i18n.cargar(antes)
 
 

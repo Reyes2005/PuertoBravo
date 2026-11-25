@@ -31,7 +31,7 @@ SALTAR_ATRIBUTOS = {"info", "aviso", "error", "debug", "warning", "exception", "
 
 
 # Una orden de Windows: una línea de .bat, sus variables (%REG%, %~f0, %errorlevel%) o sus redirecciones (>nul, 2>nul).
-ORDEN_WINDOWS = re.compile(r"%~|%(?![sdifr]%)[A-Za-z_][A-Za-z0-9_]*%|[12]?>\s*nul\b"                 # %REG%, %~f0, >nul; no %s%s
+ORDEN_WINDOWS = re.compile(r"%~|%(?![sdifr]%)[A-Za-z_][A-Za-z0-9_]*%|[12]?>\s*nul\b|\s/[a-z]{1,4}:\d"   # %REG%, %~f0, >nul, /r:2; no %s%s
                            r"|^\s*(?:@echo\b|echo\s|setlocal\b|endlocal\b|set\s+(?:/a\s+)?\"?[A-Za-z_]+\+?=|if\s+(?:not\s+)?(?:exist|errorlevel|%)"
                            r"|goto\s|rmdir\s|rd\s+/|del\s+[\"/%]|mkdir\s|start\s+\"|call\s|chcp\s|\(goto\)|:[a-z_]+$)")
 
