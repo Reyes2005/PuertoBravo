@@ -1,6 +1,6 @@
 {
   "Permitir menú de trampas": "Permitir menu de trapaças",
-  "Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el dueño del servidor permite usarlo aquí.": "Com no, que é o padrão, os jogos anulam completamente o menu de trapaças ao entrar neste servidor. Com si, o dono do servidor permite usá-lo aqui.",
+  "Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el servidor deja de vigilar el dinero de todos los jugadores y cualquiera podrá ponerse el dinero que quiera.": "Com no, que é o padrão, os jogos anulam completamente o menu de trapaças ao entrar neste servidor. Com si, o servidor deixa de vigiar o dinheiro de todos os jogadores e qualquer pessoa poderá colocar quanto dinheiro quiser.",
   "si o no": "si ou no",
   "permite o bloquea el menú de trampas en este servidor (solo desde consola o panel)": "permite ou bloqueia o menu de trapaças neste servidor (somente pelo console ou painel)",
   "Esta orden solo se puede dar desde la consola o el panel del servidor.": "Este comando só pode ser dado pelo console ou pelo painel do servidor.",

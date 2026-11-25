@@ -489,6 +489,7 @@ a { color: #9fd0ff; }
 <li>Entre amigos de confianza: sube <code>ganancia_hora</code> sin miedo, a 100.000 o más, o quita la cuenta del dinero con <code>economia = no</code>. El tope está para los servidores abiertos a desconocidos, no para amargar a tu gente.</li>
 <li>En un servidor abierto: deja el tope de serie y, si tu gente vive de los contratos o de los atracos y se queja, sube antes <code>encargos_hora</code> que <code>ganancia_hora</code>.</li>
 <li>Si alguien te dice que el servidor le quita dinero, pregúntale qué le ha dicho el juego: desde la 1.7.1 le da las cifras. En el registro del servidor sale una línea cada vez, con lo que se le retira y el tope.</li>
+<li>Si activas <code>permitir_trampas = si</code> (o ejecutas <code>trampas si</code>), el servidor deja de vigilar el dinero de todos los jugadores, no solo del que usa el menú: cualquiera que lo abra podrá ponerse todo el dinero que quiera, por encima de <code>ganancia_hora</code> y <code>economia</code>. Úsalo solo entre gente de confianza.</li>
 <li>Todas estas opciones se cambian con el servidor en marcha.</li>
 </ul>
 <h3>Si se corta la conexión nada más comprar</h3>
@@ -824,7 +825,7 @@ a { color: #9fd0ff; }
 <li>Se aplica sin reiniciar el servidor.</li>
 </ul>
 <h4>Permitir menú de trampas: <code>permitir_trampas</code></h4>
-<p>Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el dueño del servidor permite usarlo aquí.</p>
+<p>Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el servidor deja de vigilar el dinero de todos los jugadores y cualquiera podrá ponerse el dinero que quiera.</p>
 <ul>
 <li>Valores: si o no.</li>
 <li>De serie: <code>no</code>.</li>

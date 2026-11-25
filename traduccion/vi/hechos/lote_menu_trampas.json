@@ -1,6 +1,6 @@
 {
   "Permitir menú de trampas": "Cho phép bảng gian lận",
-  "Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el dueño del servidor permite usarlo aquí.": "Chọn no (mặc định): trò chơi sẽ vô hiệu hóa hoàn toàn bảng gian lận khi vào máy chủ này. Chọn si: chủ máy chủ cho phép sử dụng tại đây.",
+  "Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el servidor deja de vigilar el dinero de todos los jugadores y cualquiera podrá ponerse el dinero que quiera.": "Chọn no (mặc định): trò chơi sẽ vô hiệu hóa hoàn toàn bảng gian lận khi vào máy chủ này. Chọn si: máy chủ sẽ ngừng kiểm tra tiền của tất cả người chơi và bất kỳ ai cũng có thể tự đặt bao nhiêu tiền tùy thích.",
   "si o no": "si hoặc no",
   "permite o bloquea el menú de trampas en este servidor (solo desde consola o panel)": "cho phép hoặc chặn bảng gian lận trên máy chủ này (chỉ từ bảng điều khiển hoặc giao diện quản lý)",
   "Esta orden solo se puede dar desde la consola o el panel del servidor.": "Lệnh này chỉ có thể thực hiện từ bảng điều khiển hoặc giao diện quản lý của máy chủ.",

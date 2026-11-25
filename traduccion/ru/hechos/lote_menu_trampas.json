@@ -1,6 +1,6 @@
 {
   "Permitir menú de trampas": "Разрешить меню читов",
-  "Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el dueño del servidor permite usarlo aquí.": "С no, как по умолчанию, игры полностью отключают меню читов при входе на этот сервер. С si владелец сервера разрешает использовать его здесь.",
+  "Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el servidor deja de vigilar el dinero de todos los jugadores y cualquiera podrá ponerse el dinero que quiera.": "С no, как по умолчанию, игры полностью отключают меню читов при входе на этот сервер. С si сервер перестаёт проверять деньги у всех игроков, и любой сможет начислить себе сколько угодно денег.",
   "si o no": "si или no",
   "permite o bloquea el menú de trampas en este servidor (solo desde consola o panel)": "разрешает или блокирует меню читов на этом сервере (только из консоли или панели)",
   "Esta orden solo se puede dar desde la consola o el panel del servidor.": "Эту команду можно отдавать только из консоли или панели сервера.",

@@ -9941,7 +9941,10 @@
 "Con no, los jugadores no pueden herirse, atracarse ni robarse entre sí.": [
 "servidor/opciones.py"
 ],
-"Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el dueño del servidor permite usarlo aquí.": [
+"Con no, que es como viene, el juego no abre ninguna conexión para el menú de trampas externo. Con sí, permite usar MenuTrampas.exe en solitario o en servidores donde el dueño lo haya permitido. Usar trampas desactiva los logros en esa partida.": [
+"juego/menus_juego.py"
+],
+"Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el servidor deja de vigilar el dinero de todos los jugadores y cualquiera podrá ponerse el dinero que quiera.": [
 "servidor/opciones.py"
 ],
 "Con no, que es lo de siempre, los barrios se conquistan y se defienden desde el móvil, en Territorios. Con sí, cada barrio de las ciudades es de una banda y los suyos andan por sus calles. Un barrio se conquista yendo allí: al tumbar a dos de los suyos, o plantándoles cara desde el móvil cuando ya estás dentro, la banda viene a por ti en tres oleadas. Tu propia banda acude a ayudarte. No hay que salir del barrio hasta acabar. Y cuando ataquen un barrio tuyo, lo defiendes entrando en él. En un servidor en línea no cuenta: allí los barrios son de las bandas de los jugadores.": [
@@ -29024,6 +29027,9 @@
 "Los libros del prestamista están en la fábrica vieja, y no está sola.": [
 "data/datos/misiones_extra2.json"
 ],
+"Los logros están desactivados en esta partida porque se han usado trampas.": [
+"juego/menus_extra.py"
+],
 "Los lugares de este grupo, con dónde está cada uno, en orden alfabético o de más cerca a más lejos, según Opciones, Orientación y avisos. Dentro, el Tabulador cambia el orden. Sobre un lugar, F1 dice cómo es.": [
 "juego/menus_juego.py"
 ],
@@ -35876,6 +35882,9 @@
 ],
 "Permitir dos sesiones con la misma identidad": [
 "servidor/opciones.py"
+],
+"Permitir el menú de trampas": [
+"juego/menus_juego.py"
 ],
 "Permitir el modo pasivo": [
 "servidor/opciones.py"
