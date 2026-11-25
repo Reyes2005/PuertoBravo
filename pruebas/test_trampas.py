@@ -47,7 +47,22 @@ def puente_activo(robot, tmp_path, monkeypatch):
 
 def test_puente_descubrimiento_auth_y_cierre(robot, tmp_path, monkeypatch):
     monkeypatch.setenv("PUERTOBRAVO_TRAMPAS_DIR", str(tmp_path))
+    assert robot.app.cfg["permitir_trampas"] is False
     assert getattr(robot.app, "_puente_trampas", None) is None  # apagado por defecto en pruebas
+    assert descubrir_instancias(str(tmp_path)) == []
+
+    # Enciende al activar la opción del juego y limpia todo al apagarla
+    robot.app.cfg["permitir_trampas"] = True
+    robot.app.actualizar_puente_trampas()
+    srv = getattr(robot.app, "_puente_trampas", None)
+    assert srv is not None and srv._activo is True
+    assert len(descubrir_instancias(str(tmp_path))) == 1
+
+    robot.app.cfg["permitir_trampas"] = False
+    robot.app.actualizar_puente_trampas()
+    assert getattr(robot.app, "_puente_trampas", None) is None
+    assert srv._sock is None
+    assert descubrir_instancias(str(tmp_path)) == []
 
     srv = puente.iniciar(robot.app, forzar=True, carpeta=str(tmp_path))
     instancias = descubrir_instancias(str(tmp_path))

@@ -123,10 +123,17 @@ class App:
             from . import ia
             ia.ajustar_local(self.cfg)           # si el modo IA usa el modelo local, que vaya cargando; al salir se cierra siempre
         try:
-            from trampas import puente as _puente_trampas
-            _puente_trampas.iniciar(self)
+            self.actualizar_puente_trampas()
         except Exception:
             pass
+
+    def actualizar_puente_trampas(self):
+        """Enciende o apaga el puente IPC del menú de trampas según la opción en juego."""
+        from trampas import puente as _puente_trampas
+        if self.cfg["permitir_trampas"] or os.environ.get("PUERTOBRAVO_TRAMPAS") == "1":
+            _puente_trampas.iniciar(self)
+        else:
+            _puente_trampas.detener(self)
 
     # ------------------------------------------------------------------ audio
     def aplicar_volumenes(self):

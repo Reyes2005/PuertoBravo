@@ -83,6 +83,17 @@ def servidor_permite_trampas(app) -> bool:
     return False
 
 
+def trampas_habilitadas_en_juego(app) -> bool:
+    """True si el jugador habilitó «Permitir el menú de trampas» en Opciones (o vía variable de entorno)."""
+    if os.environ.get("PUERTOBRAVO_TRAMPAS") == "1":
+        return True
+    if app is None:
+        return False
+    cfg = getattr(app, "cfg", None)
+    v = getattr(cfg, "v", None) if cfg is not None else None
+    return bool(v.get("permitir_trampas", False)) if isinstance(v, dict) else False
+
+
 def puente_bloqueado(app) -> bool:
     """True cuando el puente debe quedar anulado (amigos siempre, o servidor sin permiso del dueño)."""
     return es_multijugador(app) and not servidor_permite_trampas(app)
@@ -611,6 +622,10 @@ def _validar_integridad_campo(objetivo: str, clave: str, nuevo) -> None:
 
 def despachar(app, cmd: str, args: dict | None = None):
     """Ejecuta un comando del puente sobre la instancia viva de App y Partida."""
+    srv = getattr(app, "_puente_trampas", None)
+    forzado = bool(getattr(srv, "_forzado", False)) if srv is not None else False
+    if srv is not None and not forzado and not trampas_habilitadas_en_juego(app):
+        raise ValueError("El menú de trampas está desactivado en Opciones.")
     if puente_bloqueado(app):
         raise ValueError("Comunicación anulada: modo multijugador activo.")
     args = args or {}
@@ -1455,9 +1470,10 @@ def despachar(app, cmd: str, args: dict | None = None):
 class ServidorPuente:
     """Servidor TCP local no bloqueante que procesa órdenes en el hilo principal del juego."""
 
-    def __init__(self, app, carpeta: str | None = None) -> None:
+    def __init__(self, app, carpeta: str | None = None, forzado: bool = False) -> None:
         self.app = app
         self._carpeta = carpeta or carpeta_fichas()
+        self._forzado = bool(forzado)
         self.token = secrets.token_hex(16)
         self.puerto = 0
         self._ficha_ruta: str | None = None
@@ -1596,6 +1612,9 @@ class ServidorPuente:
         """Drena comandos pendientes desde el hilo principal de Pygame."""
         if self._cerrado:
             return
+        if not self._forzado and not trampas_habilitadas_en_juego(self.app):
+            detener(self.app)
+            return
         if puente_bloqueado(self.app):
             if self._activo or self._ficha_ruta is not None or not self._cola.empty():
                 self.suspender()
@@ -1628,16 +1647,16 @@ class ServidorPuente:
 
 
 def iniciar(app, forzar: bool = False, carpeta: str | None = None) -> ServidorPuente | None:
-    """Inicia el puente de trampas en App, respetando el modo pruebas y PUERTOBRAVO_TRAMPAS."""
+    """Inicia el puente de trampas en App solo si la opción del juego está activa (o se fuerza en pruebas)."""
     env = os.environ.get("PUERTOBRAVO_TRAMPAS")
     if env == "0":
         return None
-    if getattr(app, "pruebas", False) and not forzar and env != "1":
+    if not forzar and not trampas_habilitadas_en_juego(app):
         return None
     actual = getattr(app, "_puente_trampas", None)
     if actual is not None:
         return actual
-    srv = ServidorPuente(app, carpeta=carpeta)
+    srv = ServidorPuente(app, carpeta=carpeta, forzado=forzar)
     srv.iniciar()
     app._puente_trampas = srv
     return srv
