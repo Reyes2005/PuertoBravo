@@ -211,21 +211,75 @@ def test_policia_y_eventos(puente_activo):
     assert tiempo["dia"] == 5 and tiempo["lluvia"] is True and tiempo["dia_azar"]["id"] == "fiesta"
 
 
-def test_bloqueo_en_linea_e_inspector(puente_activo):
+def test_inspector_generico(puente_activo):
     robot, p, _, cli, _, _ = puente_activo
     _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="jugador", clave="alias", valor="El Jefe")
     assert p.j.alias == "El Jefe"
     campos = _llamar_vivo(robot.app, cli, "inspector.leer", objetivo="jugador")["campos"]
     assert campos["alias"] == "El Jefe"
 
+
+def test_anulacion_total_multijugador(puente_activo, tmp_path):
+    """En servidor o partida con amigos, el puente cierra socket, borra ficha y anula toda comunicación."""
+    robot, p, srv, cli, _, _ = puente_activo
+
+    # 1. Modo servidor (en_servidor = True)
     p.en_servidor = True
-    with pytest.raises(ErrorPuente, match="Bloqueado"):
-        _llamar_vivo(robot.app, cli, "jugador.set", dinero=999999)
+    robot.app.paso(1 / 60)
+    assert srv._activo is False
+    assert srv._sock is None
+    assert descubrir_instancias(str(tmp_path)) == []
+    with pytest.raises(ErrorPuente):
+        cli.llamar("hola")
+    with pytest.raises(ErrorPuente):
+        cli.llamar("estado")
+    with pytest.raises(ValueError, match="multijugador"):
+        puente.despachar(robot.app, "hola", {})
+
+    # Vuelve a un jugador: se reanuda automáticamente con nuevo puerto/ficha
     p.en_servidor = False
+    robot.app.paso(1 / 60)
+    assert srv._activo is True
+    assert len(descubrir_instancias(str(tmp_path))) == 1
+    cli2, _ = _conectar_vivo(robot.app, str(tmp_path))
+
+    # 2. Modo amigos (anfitrión: p.servidor / invitado: p.red)
+    class _FalsoRed:
+        conectado = True
+
+    p.red = _FalsoRed()
+    robot.app.paso(1 / 60)
+    assert srv._activo is False
+    assert descubrir_instancias(str(tmp_path)) == []
+    with pytest.raises(ErrorPuente):
+        cli2.llamar("estado")
+
+    p.red = None
+    p.servidor = object()
+    robot.app.paso(1 / 60)
+    assert srv._activo is False
+    assert descubrir_instancias(str(tmp_path)) == []
+
+    p.servidor = None
+    robot.app.paso(1 / 60)
+    assert srv._activo is True
+    assert len(descubrir_instancias(str(tmp_path))) == 1
 
 
-def test_ganchos_y_gui_wx(tmp_path):
+def test_ganchos_y_gui_wx_sincronizada(puente_activo):
+    import threading
     assert instalar_gancho.verificar() == []
+    robot, p, srv, _, _, tmp_path = puente_activo
+
+    p.j.dinero = 7777
+    p.j.banco = 12345
+    p.j.salud = 82.0
+    p.j.blindaje = 45.0
+    p.j.estrellas = 3
+    p.j.hab["conduccion"] = 6000.0
+    p.reloj = 15 * 60.0
+    p.dia = 9
+    p.lluvia = True
 
     wx = pytest.importorskip("wx")
     try:
@@ -236,9 +290,29 @@ def test_ganchos_y_gui_wx(tmp_path):
 
     wx.HelpProvider.Set(wx.SimpleHelpProvider())
     v = VentanaTrampas(auto_conectar=False, intervalo_ms=0)
+    parar = threading.Event()
+
+    def bombear_puente():
+        while not parar.is_set():
+            srv.atender()
+            time.sleep(0.002)
+
+    hilo = threading.Thread(target=bombear_puente, daemon=True)
+    hilo.start()
     try:
         assert v.libro.GetPageCount() == 8
+        assert v.conectar(False) is True
+        assert v.sp_dinero.GetValue() == 7777
+        assert v.sp_banco.GetValue() == 12345
+        assert v.sp_salud.GetValue() == 82
+        assert v.sp_blindaje.GetValue() == 45
+        assert v.sp_estrellas.GetValue() == 3
+        assert v.sp_hora.GetValue() == 15
+        assert v.sp_dia.GetValue() == 9
+        assert v.chk_lluvia.GetValue() is True
     finally:
+        parar.set()
+        hilo.join(timeout=1.0)
         v.Close()
         v.Destroy()
         app_wx.ProcessPendingEvents()

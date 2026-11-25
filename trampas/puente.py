@@ -35,16 +35,36 @@ def _json_seguro(val, profundidad: int = 0):
     return repr(val)
 
 
-def _en_linea_bloqueado(partida) -> bool:
-    if partida is None:
+def es_multijugador(app) -> bool:
+    """True si el juego está en servidor o en partida con amigos (conectado, abriendo o reconectando)."""
+    if app is None:
         return False
-    if getattr(partida, "en_servidor", False):
+    if getattr(app, "enlace", None) is not None:
         return True
-    fn = getattr(partida, "online_activo", None)
+    p = getattr(app, "partida", None)
+    if p is None:
+        return False
+    if getattr(p, "en_servidor", False):
+        return True
+    if getattr(p, "sv_espera", None) is not None:
+        return True
+    if getattr(p, "red", None) is not None or getattr(p, "servidor", None) is not None:
+        return True
+    if getattr(p, "_red_union", None) or getattr(p, "_red_reintentando", False):
+        return True
+    if getattr(p, "remotos", None):
+        return True
+    fn = getattr(p, "online_activo", None)
     try:
         return bool(fn()) if callable(fn) else False
     except Exception:
         return False
+
+
+def _en_linea_bloqueado(partida) -> bool:
+    if partida is None:
+        return False
+    return es_multijugador(getattr(partida, "app", None)) or bool(getattr(partida, "en_servidor", False))
 
 
 def _convertir_valor(raw, referencia=None):
@@ -411,6 +431,8 @@ def _punto_spawn_vehiculo(p, mo: dict):
 
 def despachar(app, cmd: str, args: dict | None = None):
     """Ejecuta un comando del puente sobre la instancia viva de App y Partida."""
+    if es_multijugador(app):
+        raise ValueError("Comunicación anulada: modo multijugador activo.")
     args = args or {}
     from juego import VERSION, azar, config, gente, mochila, sistemas
     from juego.entidades import Objeto, Persona, Vehiculo
@@ -423,7 +445,7 @@ def despachar(app, cmd: str, args: dict | None = None):
             "version": VERSION,
             "pid": os.getpid(),
             "en_partida": p is not None,
-            "en_linea": _en_linea_bloqueado(p),
+            "en_linea": False,
         }
 
     if cmd == "catalogos":
@@ -588,7 +610,7 @@ def despachar(app, cmd: str, args: dict | None = None):
                 p.crear_perro()
 
         campos = ("salud", "salud_max", "blindaje", "dinero", "banco", "foco", "animo", "ciudadania", "reputacion",
-                  "hambre", "sed", "sueno", "suciedad", "carne_puntos", "cocina_practica", "perro_hambre",
+                  "hambre", "sed", "sueno", "suciedad", "carne_puntos", "cocina_practica", "perro", "perro_hambre",
                   "perro_confianza", "banda", "banda_nombre", "alias")
         for c in campos:
             if c in args and args[c] is not None:
@@ -755,7 +777,10 @@ def despachar(app, cmd: str, args: dict | None = None):
         if tipo == "sustancia":
             if not ident:
                 raise ValueError("Falta la sustancia.")
-            j.sustancias[ident] = max(0, int(j.sustancias.get(ident, 0)) + cantidad)
+            if args.get("fijar"):
+                j.sustancias[ident] = max(0, cantidad)
+            else:
+                j.sustancias[ident] = max(0, int(j.sustancias.get(ident, 0)) + cantidad)
             return {"sustancias": _json_seguro(j.sustancias)}
         if tipo == "producto":
             if not ident:
@@ -1236,10 +1261,15 @@ class ServidorPuente:
         self._sock: socket.socket | None = None
         self._hilo: threading.Thread | None = None
         self._activo = False
+        self._suspendido = False
+        self._cerrado = False
         self._cola: queue.Queue = queue.Queue()
 
     def iniciar(self) -> None:
-        if self._activo:
+        if self._cerrado or self._activo:
+            return
+        if es_multijugador(self.app):
+            self._suspendido = True
             return
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -1249,6 +1279,7 @@ class ServidorPuente:
         self._sock = sock
         self.puerto = int(sock.getsockname()[1])
         self._activo = True
+        self._suspendido = False
         self._escribir_ficha()
         self._hilo = threading.Thread(target=self._bucle_red, name="PuertoBravoPuenteTrampas", daemon=True)
         self._hilo.start()
@@ -1281,18 +1312,28 @@ class ServidorPuente:
                 continue
             except OSError:
                 break
+            if es_multijugador(self.app):
+                try:
+                    conn.close()
+                except OSError:
+                    pass
+                continue
             threading.Thread(target=self._atender_conexion, args=(conn,), daemon=True).start()
 
     def _atender_conexion(self, conn: socket.socket) -> None:
         with conn:
+            if es_multijugador(self.app) or not self._activo:
+                return
             conn.settimeout(5.0)
             try:
                 linea = leer_linea_socket(conn, MAX_MENSAJE)
-                if not linea:
+                if not linea or es_multijugador(self.app):
                     return
                 req = json.loads(linea)
             except Exception as exc:
                 self._enviar(conn, {"ok": False, "error": f"Petición inválida: {exc}"})
+                return
+            if es_multijugador(self.app) or not self._activo:
                 return
             if not isinstance(req, dict) or not secrets.compare_digest(str(req.get("token", "")), self.token):
                 self._enviar(conn, {"ok": False, "error": "Token de autenticación inválido."})
@@ -1315,8 +1356,52 @@ class ServidorPuente:
         except OSError:
             pass
 
+    def _vaciar_cola(self, motivo: str) -> None:
+        while True:
+            try:
+                _, _, ev, caja = self._cola.get_nowait()
+            except queue.Empty:
+                break
+            caja["resp"] = {"ok": False, "error": motivo}
+            ev.set()
+
+    def _cerrar_red(self) -> None:
+        self._activo = False
+        if self._sock is not None:
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+            self._sock = None
+        if self._hilo is not None and self._hilo.is_alive() and threading.current_thread() is not self._hilo:
+            self._hilo.join(timeout=1.0)
+        self._hilo = None
+        if self._ficha_ruta:
+            try:
+                os.remove(self._ficha_ruta)
+            except OSError:
+                pass
+            self._ficha_ruta = None
+
+    def suspender(self) -> None:
+        """Anula inmediatamente la comunicación al entrar en servidor o partida con amigos."""
+        self._suspendido = True
+        self._cerrar_red()
+        self._vaciar_cola("Comunicación anulada: modo multijugador activo.")
+
     def atender(self, max_ops: int = 25) -> None:
         """Drena comandos pendientes desde el hilo principal de Pygame."""
+        if self._cerrado:
+            return
+        if es_multijugador(self.app):
+            if self._activo or self._ficha_ruta is not None or not self._cola.empty():
+                self.suspender()
+            else:
+                self._suspendido = True
+            return
+        if self._suspendido:
+            self.iniciar()
+            return
         atendidos = 0
         while atendidos < max_ops:
             try:
@@ -1333,22 +1418,10 @@ class ServidorPuente:
                 ev.set()
 
     def detener(self) -> None:
-        self._activo = False
-        if self._sock is not None:
-            try:
-                self._sock.close()
-            except OSError:
-                pass
-            self._sock = None
-        if self._hilo is not None and self._hilo.is_alive():
-            self._hilo.join(timeout=1.0)
-        self._hilo = None
-        if self._ficha_ruta:
-            try:
-                os.remove(self._ficha_ruta)
-            except OSError:
-                pass
-            self._ficha_ruta = None
+        self._cerrado = True
+        self._suspendido = False
+        self._cerrar_red()
+        self._vaciar_cola("Puente detenido.")
 
 
 def iniciar(app, forzar: bool = False, carpeta: str | None = None) -> ServidorPuente | None:
