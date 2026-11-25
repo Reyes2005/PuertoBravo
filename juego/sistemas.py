@@ -154,7 +154,7 @@ def poner(v, mejoras):
 
 
 def resumen(v):
-    partes = [tr('{lower} nivel {n}').format(lower=(MEJORAS[k]['nombre'].lower()), n=(n)) for k, n in getattr(v, "mejoras", {}).items() if n and k in MEJORAS]
+    partes = [tr('{lower} nivel {n}').format(lower=(tr(MEJORAS[k]['nombre']).lower()), n=(n)) for k, n in getattr(v, "mejoras", {}).items() if n and k in MEJORAS]
     return tr("Mejoras: ") + ", ".join(partes) if partes else tr("Sin mejoras")
 
 
@@ -169,7 +169,7 @@ def opciones_taller(p, v, Opcion):
                 app.son("error")
                 app.decir(p.motivo_ajeno(v), True)
             elif n >= niveles(cual):
-                app.decir(tr('{nombre} ya está al máximo.').format(nombre=(MEJORAS[cual]['nombre'])), True)
+                app.decir(tr('{nombre} ya está al máximo.').format(nombre=(tr(MEJORAS[cual]['nombre']))), True)
             elif p.pagar(precio(v, cual)):
                 m = dict(getattr(v, "mejoras", {}))
                 m[cual] = n + 1
@@ -179,16 +179,16 @@ def opciones_taller(p, v, Opcion):
                     v.canal.volumen(0.42 * factor_motor_volumen(v))
                 suyo = not p.es_mio(v) and p.hacer_mio(v, callar=True)      # lo que mejoras es tuyo: ya no se pierde en la calle
                 v.robado = False                                 # y a tu nombre: el desguace te lo paga como tuyo
-                app.decir(tr('{nombre} mejorado al nivel {v} de {niveles}. {resumen}.').format(nombre=(MEJORAS[cual]['nombre']), v=(n + 1), niveles=(niveles(cual)), resumen=(resumen(v)))
+                app.decir(tr('{nombre} mejorado al nivel {v} de {niveles}. {resumen}.').format(nombre=(tr(MEJORAS[cual]['nombre'])), v=(n + 1), niveles=(niveles(cual)), resumen=(resumen(v)))
                           + (tr(' {nombre} queda a tu nombre: no desaparece aunque lo dejes en la calle, y lo tienes en el móvil, en Mis vehículos.').format(nombre=(v.nombre)) if suyo else ""), True)
         return f
 
     def texto(cual):
         def f():
             n = nivel(v, cual)
-            return tr('Mejorar {lower}: nivel {n} de {niveles}').format(lower=(MEJORAS[cual]['nombre'].lower()), n=(n), niveles=(niveles(cual))) + (tr('. Subir cuesta {precio} euros').format(precio=(precio(v, cual))) if n < niveles(cual) else tr(". Al máximo"))
+            return tr('Mejorar {lower}: nivel {n} de {niveles}').format(lower=(tr(MEJORAS[cual]['nombre']).lower()), n=(n), niveles=(niveles(cual))) + (tr('. Subir cuesta {precio} euros').format(precio=(precio(v, cual))) if n < niveles(cual) else tr(". Al máximo"))
         return f
-    return [Opcion(texto(k), comprar(k), ayuda=MEJORAS[k]["desc"] + tr(" Las mejoras van con este vehículo, que desde la primera queda a tu nombre: no se pierde aunque lo dejes en la calle o cojas otro, "
+    return [Opcion(texto(k), comprar(k), ayuda=tr(MEJORAS[k]["desc"]) + tr(" Las mejoras van con este vehículo, que desde la primera queda a tu nombre: no se pierde aunque lo dejes en la calle o cojas otro, "
                                                               "y se conservan en el garaje. Vale también para los vehículos de trabajo.")) for k in MEJORAS]
 
 
@@ -399,7 +399,7 @@ def menu_muebles(p, lugar, Menu, Opcion):
                 return
             tengo.append(mueble[0])
             p.cambiar_animo(3)
-            app.decir(tr('Te lo traen y lo dejan puesto. {v} {v2}').format(v=(mueble[4]), v2=(mueble[5])), True)
+            app.decir(tr('Te lo traen y lo dejan puesto. {v} {v2}').format(v=tr(mueble[4]), v2=tr(mueble[5])), True)
             comun = p.casa_comun() if hasattr(p, "casa_comun") else None
             if comun is not None and comun.id == lugar.id:       # te lo había pedido quien vive contigo: se entera al momento
                 p.peticion_cumplida("mueble")
@@ -412,9 +412,9 @@ def menu_muebles(p, lugar, Menu, Opcion):
             if mu[1] == "garaje" and not int(lugar.get("garaje", 0)):
                 continue
             if mu[0] in tengo:
-                lista.append(Opcion(tr('{v}: ya lo tienes. {v2}').format(v=(mu[2]), v2=(mu[5])), ayuda=tr("Ya está puesto en esta casa. No hace falta comprarlo otra vez.")))
+                lista.append(Opcion(tr('{v}: ya lo tienes. {v2}').format(v=tr(mu[2]), v2=tr(mu[5])), ayuda=tr("Ya está puesto en esta casa. No hace falta comprarlo otra vez.")))
             else:
-                lista.append(Opcion(tr('{v}: {v2} euros').format(v=(mu[2]), v2=(mu[3])), comprar(mu), ayuda=mu[5]))
+                lista.append(Opcion(tr('{v}: {v2} euros').format(v=tr(mu[2]), v2=(mu[3])), comprar(mu), ayuda=tr(mu[5])))
         lista.append(Opcion(tr("Volver"), lambda: app.cerrar(m)))
         return lista
     m = Menu(app, lambda: tr('Amueblar {nombre}. Tienes {dinero} euros').format(nombre=(lugar.nombre), dinero=(j.dinero)), ops,
@@ -465,7 +465,7 @@ class Interior:
         self.muebles = muebles_de(p.j, lugar)
         for mu in MUEBLES:                                # lo que has comprado se nota al entrar en cada habitación
             if mu[0] in self.muebles:
-                self.habitaciones = [(n, d + " " + mu[4], q) if q == mu[1] else (n, d, q) for n, d, q in self.habitaciones]
+                self.habitaciones = [(n, d + " " + tr(mu[4]), q) if q == mu[1] else (n, d, q) for n, d, q in self.habitaciones]
         self.i = 0
 
     def al_entrar(self):

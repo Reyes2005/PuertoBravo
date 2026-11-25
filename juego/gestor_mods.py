@@ -49,8 +49,9 @@ def ficha(nombre):
         info = {}
     titulo = str(info.get("nombre") or "").strip()
     desc = str(info.get("descripcion") or "").strip()
-    titulo = i18n.en_idioma(titulo, i18n.actual()) if titulo and hasattr(i18n, "en_idioma") else titulo
-    desc = i18n.en_idioma(desc, i18n.actual()) if desc and hasattr(i18n, "en_idioma") else desc
+    # tr(), no en_idioma(): el catálogo del idioma del juego lleva también la traducción de los mods que llegan como
+    # componente (data/idiomas/<código>/mods), que en_idioma() no mira.
+    titulo, desc = i18n.tr(titulo), i18n.tr(desc)
     return (titulo or simple.replace("_", " ")), desc
 
 
