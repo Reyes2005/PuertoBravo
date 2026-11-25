@@ -122,6 +122,11 @@ class App:
         if self.cfg["ia_activa"] and self.cfg["ia_servicio"] in ("auto", "local") and not self.pruebas:
             from . import ia
             ia.ajustar_local(self.cfg)           # si el modo IA usa el modelo local, que vaya cargando; al salir se cierra siempre
+        try:
+            from trampas import puente as _puente_trampas
+            _puente_trampas.iniciar(self)
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------ audio
     def aplicar_volumenes(self):
@@ -337,6 +342,8 @@ class App:
                 from . import menus_actualizar
                 menus_actualizar.paso(self)
         self.mez.actualizar()
+        if getattr(self, "_puente_trampas", None) is not None:
+            self._puente_trampas.atender()
 
     def inyectar(self, key, mod=0, unicode="", soltar=True):
         """Simula una pulsación (pruebas automáticas)."""
@@ -417,6 +424,12 @@ class App:
             pygame.time.wait(9000)
 
     def cerrar_todo(self):
+        try:
+            if getattr(self, "_puente_trampas", None) is not None:
+                self._puente_trampas.detener()
+                self._puente_trampas = None
+        except Exception:
+            pass
         try:
             if self.partida:
                 self.partida.sv_salir()                  # en un servidor: guardar y despedirse
