@@ -17,6 +17,8 @@ from . import PROTOCOLO, carpeta_fichas
 from .protocolo import MAX_MENSAJE, leer_linea_socket
 
 COMANDOS_LECTURA = {"ping", "hola", "catalogos", "estado", "vehiculos.listar", "npcs.listar", "inspector.leer"}
+MAX_CONEXIONES = 8
+MAX_COLA = 32
 
 
 def _json_seguro(val, profundidad: int = 0):
@@ -1482,7 +1484,8 @@ class ServidorPuente:
         self._activo = False
         self._suspendido = False
         self._cerrado = False
-        self._cola: queue.Queue = queue.Queue()
+        self._cola: queue.Queue = queue.Queue(maxsize=MAX_COLA)
+        self._sem_conns = threading.BoundedSemaphore(MAX_CONEXIONES)
 
     def iniciar(self) -> None:
         if self._cerrado or self._activo:
@@ -1537,35 +1540,61 @@ class ServidorPuente:
                 except OSError:
                     pass
                 continue
-            threading.Thread(target=self._atender_conexion, args=(conn,), daemon=True).start()
+            if not self._sem_conns.acquire(blocking=False):
+                try:
+                    conn.settimeout(0.5)
+                    self._enviar(conn, {"ok": False, "error": "Demasiadas conexiones simultáneas en el puente."})
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        conn.close()
+                    except OSError:
+                        pass
+                continue
+            try:
+                threading.Thread(target=self._atender_conexion, args=(conn,), daemon=True).start()
+            except Exception:
+                self._sem_conns.release()
+                try:
+                    conn.close()
+                except OSError:
+                    pass
 
     def _atender_conexion(self, conn: socket.socket) -> None:
-        with conn:
-            if puente_bloqueado(self.app) or not self._activo:
-                return
-            conn.settimeout(5.0)
-            try:
-                linea = leer_linea_socket(conn, MAX_MENSAJE)
-                if not linea or puente_bloqueado(self.app):
+        try:
+            with conn:
+                if puente_bloqueado(self.app) or not self._activo:
                     return
-                req = json.loads(linea)
-            except Exception as exc:
-                self._enviar(conn, {"ok": False, "error": f"Petición inválida: {exc}"})
-                return
-            if puente_bloqueado(self.app) or not self._activo:
-                return
-            if not isinstance(req, dict) or not secrets.compare_digest(str(req.get("token", "")), self.token):
-                self._enviar(conn, {"ok": False, "error": "Token de autenticación inválido."})
-                return
-            cmd = str(req.get("cmd", ""))
-            args = req.get("args") if isinstance(req.get("args"), dict) else {}
-            ev = threading.Event()
-            caja: dict = {}
-            self._cola.put((cmd, args, ev, caja))
-            if not ev.wait(timeout=4.5):
-                self._enviar(conn, {"ok": False, "error": "Tiempo de espera agotado ejecutando el comando en el juego."})
-                return
-            self._enviar(conn, caja.get("resp", {"ok": False, "error": "Sin respuesta."}))
+                conn.settimeout(2.5)
+                try:
+                    linea = leer_linea_socket(conn, MAX_MENSAJE)
+                    if not linea or puente_bloqueado(self.app):
+                        return
+                    req = json.loads(linea)
+                except Exception as exc:
+                    self._enviar(conn, {"ok": False, "error": f"Petición inválida: {exc}"})
+                    return
+                if puente_bloqueado(self.app) or not self._activo:
+                    return
+                if not isinstance(req, dict) or not secrets.compare_digest(str(req.get("token", "")), self.token):
+                    self._enviar(conn, {"ok": False, "error": "Token de autenticación inválido."})
+                    return
+                cmd = str(req.get("cmd", ""))
+                args = req.get("args") if isinstance(req.get("args"), dict) else {}
+                ev = threading.Event()
+                caja: dict = {}
+                try:
+                    self._cola.put_nowait((cmd, args, ev, caja))
+                except queue.Full:
+                    self._enviar(conn, {"ok": False, "error": "Cola de comandos llena; intenta de nuevo."})
+                    return
+                if not ev.wait(timeout=4.5):
+                    self._enviar(conn, {"ok": False, "error": "Tiempo de espera agotado ejecutando el comando en el juego."})
+                    return
+                self._enviar(conn, caja.get("resp", {"ok": False, "error": "Sin respuesta."}))
+        finally:
+            self._sem_conns.release()
 
     @staticmethod
     def _enviar(conn: socket.socket, resp: dict) -> None:

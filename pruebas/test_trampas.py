@@ -82,6 +82,49 @@ def test_puente_descubrimiento_auth_y_cierre(robot, tmp_path, monkeypatch):
     assert descubrir_instancias(str(tmp_path)) == []
 
 
+def test_puente_limite_conexiones_simultaneas(robot, tmp_path, monkeypatch):
+    import json
+    import socket
+    from trampas.protocolo import leer_linea_socket
+
+    monkeypatch.setenv("PUERTOBRAVO_TRAMPAS_DIR", str(tmp_path))
+    srv = puente.iniciar(robot.app, forzar=True, carpeta=str(tmp_path))
+    retenidos = []
+    try:
+        for _ in range(puente.MAX_CONEXIONES):
+            s = socket.create_connection(("127.0.0.1", srv.puerto), timeout=2.0)
+            retenidos.append(s)
+        # Esperar brevemente a que el bucle acepte los sockets hasta llenar el semáforo
+        limite = time.monotonic() + 2.0
+        while srv._sem_conns._value > 0 and time.monotonic() < limite:
+            time.sleep(0.01)
+        assert srv._sem_conns._value == 0
+
+        # Las conexiones extra se rechazan al instante sin crear más hilos
+        rechazadas = 0
+        for _ in range(4):
+            extra = socket.create_connection(("127.0.0.1", srv.puerto), timeout=2.0)
+            with extra:
+                extra.settimeout(2.0)
+                linea = leer_linea_socket(extra)
+                if linea:
+                    resp = json.loads(linea)
+                    if not resp.get("ok") and "Demasiadas conexiones" in resp.get("error", ""):
+                        rechazadas += 1
+        assert rechazadas == 4
+    finally:
+        for s in retenidos:
+            try:
+                s.close()
+            except OSError:
+                pass
+
+    # Tras liberar conexiones, el puente atiende normalmente
+    cli_ok, _ = _conectar_vivo(robot.app, str(tmp_path))
+    assert cli_ok is not None
+    puente.detener(robot.app)
+
+
 def test_catalogos_dinamicos(puente_activo):
     robot, p, _, cli, _, _ = puente_activo
     cat = _llamar_vivo(robot.app, cli, "catalogos")
