@@ -11,7 +11,9 @@ Qué hace con cada texto que se dice o se lee:
   pero no los que solo se comparan o sirven de clave.
 
 Qué no toca: las cadenas de documentación, los identificadores (palabras sueltas en minúscula), lo que va al registro de
-fallos (registro.*, logging, print), las claves de diccionario, lo que se compara o se usa de índice, y lo que ya va en tr().
+fallos (registro.*, logging, print), las claves de diccionario, lo que se compara o se usa de índice, lo que ya va en tr()
+y las órdenes de Windows (las líneas de un .bat, con sus %VARIABLES%, >nul, goto o set): traducidas, cmd.exe no las
+entiende, y en la 1.7.3 el instalador de las actualizaciones dejó de funcionar en ruso por eso.
 Añade al principio del módulo la importación de tr. Es idempotente: pasarla dos veces no cambia nada.
 """
 import ast
@@ -28,9 +30,22 @@ SALTAR_ATRIBUTOS = {"info", "aviso", "error", "debug", "warning", "exception", "
                     "frase", "lista", "entero", "seccion", "index", "count", "find", "rfind", "join_path", "data", "carpeta_data", "archivo_config"}
 
 
+# Una orden de Windows: una línea de .bat, sus variables (%REG%, %~f0, %errorlevel%) o sus redirecciones (>nul, 2>nul).
+ORDEN_WINDOWS = re.compile(r"%~|%(?![sdifr]%)[A-Za-z_][A-Za-z0-9_]*%|[12]?>\s*nul\b"                 # %REG%, %~f0, >nul; no %s%s
+                           r"|^\s*(?:@echo\b|echo\s|setlocal\b|endlocal\b|set\s+(?:/a\s+)?\"?[A-Za-z_]+\+?=|if\s+(?:not\s+)?(?:exist|errorlevel|%)"
+                           r"|goto\s|rmdir\s|rd\s+/|del\s+[\"/%]|mkdir\s|start\s+\"|call\s|chcp\s|\(goto\)|:[a-z_]+$)")
+
+
+def es_orden_windows(s):
+    """¿Es una orden de Windows, de las que van en un .bat? Esas no se traducen nunca."""
+    return isinstance(s, str) and bool(ORDEN_WINDOWS.search(s))
+
+
 def es_texto(s):
     """¿Es un texto para personas? Tiene letras y, además, espacios o mayúsculas. Lo demás son claves."""
     if not isinstance(s, str) or not LETRAS.search(s):
+        return False
+    if es_orden_windows(s):                                     # una línea de .bat: traducida, cmd.exe no la entiende
         return False
     if re.search(r"%[YmdHMSfjbBaAp]", s) or "(?" in s or s.count("\\") > 1:     # formatos de fecha y expresiones regulares
         return False

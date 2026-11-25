@@ -77,7 +77,7 @@ def de_windows(nombre):
     """Una utilidad de Windows (tasklist.exe, cmd.exe) con su ruta entera, para no depender del PATH: con Git Bash o Cygwin
     por delante, «find» o «tasklist» pueden ser otros programas."""
     for raiz in (os.environ.get("SystemRoot"), os.environ.get("windir")):
-        ruta = os.path.join(raiz, tr("System32"), nombre) if raiz else ""
+        ruta = os.path.join(raiz, "System32", nombre) if raiz else ""
         if ruta and os.path.isfile(ruta):
             return ruta
     return nombre
@@ -543,94 +543,94 @@ def escribir_instalador(nueva, programa=None, pid=None, version=""):
     trabajo = os.path.dirname(nueva)
     copia = os.path.join(trabajo, "anterior")
     excluir = " ".join(INTOCABLES + VIVO_SERVIDOR)           # lo vivo de un servidor no lo trae una versión; si lo trajera, no se copia
-    callado = tr('/njh /njs /ndl /nfl /np /log+:"%REG%"')        # robocopy no lista lo que va bien: en el registro solo quedan los errores
+    callado = '/njh /njs /ndl /nfl /np /log+:"%REG%"'        # robocopy no lista lo que va bien: en el registro solo quedan los errores
     # Las utilidades de Windows, con su ruta entera: con otro «find» por delante en el PATH (Git Bash, Cygwin), las esperas no esperaban.
     robocopy, tasklist, find, ping = ('"%SYS%\\' + n + '"' for n in ("robocopy.exe", "tasklist.exe", "find.exe", "ping.exe"))
 
     def apunta(texto):
-        return tr('>>"%REG%" echo {texto}').format(texto=(texto))
+        return f'>>"%REG%" echo {texto}'
 
     def paso(nombre, orden, vital=True, si=None):
         """Un paso con robocopy: se apunta que empieza, se hace, y se apunta el código con el que termina (8 o más es fallo)."""
-        lineas = [tr('set PASO={nombre}').format(nombre=(nombre)), apunta(tr('PASO {nombre}').format(nombre=(nombre))), orden, tr("set RC=%errorlevel%"), apunta(tr('RESULTADO {nombre} codigo=%RC%').format(nombre=(nombre)))]
+        lineas = [f'set PASO={nombre}', apunta(f'PASO {nombre}'), orden, "set RC=%errorlevel%", apunta(f'RESULTADO {nombre} codigo=%RC%')]
         if vital:
-            lineas.append(tr("if %RC% geq 8 goto fallo"))
+            lineas.append("if %RC% geq 8 goto fallo")
         if si:                                               # solo si existe esa carpeta en la versión nueva
             salto = f"sin_{nombre}"
-            lineas = [tr('if not exist "{si}" goto {salto}').format(si=(si), salto=(salto))] + lineas + [f":{salto}"]
+            lineas = [f'if not exist "{si}" goto {salto}'] + lineas + [f":{salto}"]
         return lineas
 
     lineas = [
-        tr("@echo off"), "setlocal", 'set "SYS=%SystemRoot%\\System32"', 'if not exist "%SYS%\\robocopy.exe" set "SYS=%windir%\\System32"',
+        "@echo off", "setlocal", 'set "SYS=%SystemRoot%\\System32"', 'if not exist "%SYS%\\robocopy.exe" set "SYS=%windir%\\System32"',
         '"%SYS%\\chcp.com" 65001 >nul',
-        tr('set "APP={programa}"').format(programa=(programa)), tr('set "NUEVA={nueva}"').format(nueva=(nueva)), tr('set "COPIA={copia}"').format(copia=(copia)), tr('set "NOTA={join}"').format(join=(os.path.join(trabajo, NOTA_SERVIDORES))),
-        'set "REG=%APP%\\data\\logs\\' + REGISTRO_INSTALADOR + '"', tr("set PASO=empezar"), tr("set RC=0"),
+        f'set "APP={programa}"', f'set "NUEVA={nueva}"', f'set "COPIA={copia}"', f'set "NOTA={os.path.join(trabajo, NOTA_SERVIDORES)}"',
+        'set "REG=%APP%\\data\\logs\\' + REGISTRO_INSTALADOR + '"', "set PASO=empezar", "set RC=0",
         'if not exist "%APP%\\data\\logs" mkdir "%APP%\\data\\logs"',
-        tr('>"%REG%" echo Instalador de Puerto Bravo. Actualizacion a la version {version}.').format(version=(version)),
+        f'>"%REG%" echo Instalador de Puerto Bravo. Actualizacion a la version {version}.',
         apunta("EMPIEZA %date% %time%"),
-        tr('echo Actualizando Puerto Bravo a la version {version}. No cierres esta ventana.').format(version=(version)),
-        tr("set PASO=esperar_cierre"), apunta(tr("PASO esperar_cierre")),
-        tr("set /a N=0"), ":espera",
-        tr('{tasklist} /fi "PID eq {pid}" 2>nul | {find} " {pid} " >nul').format(tasklist=(tasklist), pid=(pid), find=(find)),
-        tr("if errorlevel 1 goto programas"),
-        tr("set /a N+=1"), tr("if %N% geq 90 goto no_cierra"),
-        tr('{ping} -n 2 127.0.0.1 >nul').format(ping=(ping)), tr("goto espera"),
+        f'echo Actualizando Puerto Bravo a la version {version}. No cierres esta ventana.',
+        "set PASO=esperar_cierre", apunta("PASO esperar_cierre"),
+        "set /a N=0", ":espera",
+        f'{tasklist} /fi "PID eq {pid}" 2>nul | {find} " {pid} " >nul',
+        "if errorlevel 1 goto programas",
+        "set /a N+=1", "if %N% geq 90 goto no_cierra",
+        f'{ping} -n 2 127.0.0.1 >nul', "goto espera",
         # Si el editor de mods, el servidor en línea o su panel están en marcha, sus programas no se pueden sustituir: se
         # espera a que se cierren, y si no se cierran, no se actualiza a medias.
         ":programas",
-        tr("set PASO=esperar_programas"), apunta(tr("PASO esperar_programas")), tr("set /a N=0"),
+        "set PASO=esperar_programas", apunta("PASO esperar_programas"), "set /a N=0",
         ":mirar",
     ]
     for exe in OTROS_PROGRAMAS:
         # En CSV (/fo csv): en su tabla de siempre, tasklist recorta el nombre del programa a 25 letras, y con eso el panel
         # del servidor (PuertoBravoServidorPanel.exe, 28) no se encontraba nunca: se copiaba con él todavía abierto.
-        lineas += [tr('{tasklist} /fi "IMAGENAME eq {exe}" /fo csv /nh 2>nul | {find} /i "{exe}" >nul').format(tasklist=(tasklist), exe=(exe), find=(find)), tr("if not errorlevel 1 goto ocupado")]
+        lineas += [f'{tasklist} /fi "IMAGENAME eq {exe}" /fo csv /nh 2>nul | {find} /i "{exe}" >nul', "if not errorlevel 1 goto ocupado"]
     lineas += [
-        tr("goto copiar"),
+        "goto copiar",
         ":ocupado",
-        tr("if %N%==0 echo Esperando a que se cierren el servidor en linea o el editor de mods de Puerto Bravo. El servidor avisa a los jugadores y se cierra solo."),
-        tr("set /a N+=1"), tr("if %N% geq 180 goto no_cierra"),
-        tr('{ping} -n 2 127.0.0.1 >nul').format(ping=(ping)), tr("goto mirar"),
+        "if %N%==0 echo Esperando a que se cierren el servidor en linea o el editor de mods de Puerto Bravo. El servidor avisa a los jugadores y se cierra solo.",
+        "set /a N+=1", "if %N% geq 180 goto no_cierra",
+        f'{ping} -n 2 127.0.0.1 >nul', "goto mirar",
         ":no_cierra",
-        apunta(tr("FALLO paso=%PASO% codigo=0 motivo=sigue_abierto")),
-        tr("goto abrir"),
+        apunta("FALLO paso=%PASO% codigo=0 motivo=sigue_abierto"),
+        "goto abrir",
         ":copiar",
-        tr('if exist "%COPIA%" rmdir /s /q "%COPIA%"'),
+        'if exist "%COPIA%" rmdir /s /q "%COPIA%"',
     ]
     # La copia de seguridad: solo programa, y solo lo que la versión nueva va a sustituir (plan_copia). De data, los datos del
     # juego, los mods y los manuales. No entran data\sonidos, musica, radio ni phonon, y es a propósito: son cientos de megas,
     # llevan archivos de quien juega que no se tocan jamás, y son solo audio y modelos de voz, que se cargan por su nombre y
     # con tolerancia (un sonido de otra versión suena igual, y los originales que falten se vuelven a crear). Si la instalación
     # falla, la versión anterior funciona con ellos, y la siguiente actualización que salga bien los deja al día.
-    lineas += [tr("set PASO=copia_seguridad"), apunta(tr("PASO copia_seguridad")), tr("set RC=0")]
+    lineas += ["set PASO=copia_seguridad", apunta("PASO copia_seguridad"), "set RC=0"]
     copias = []
     for sub_, archivos in plan_copia(nueva):
-        origen, destino = ("%APP%\\" + sub_, tr("%COPIA%\\") + sub_) if sub_ else ("%APP%", tr("%COPIA%"))
+        origen, destino = ("%APP%\\" + sub_, "%COPIA%\\" + sub_) if sub_ else ("%APP%", "%COPIA%")
         if archivos is None:
-            copias.append(tr('if exist "{origen}\\" {robocopy} "{origen}" "{destino}" /e /r:2 /w:1 {callado}').format(origen=(origen), robocopy=(robocopy), destino=(destino), callado=(callado)))
+            copias.append(f'if exist "{origen}\\" {robocopy} "{origen}" "{destino}" /e /r:2 /w:1 {callado}')
         for k in range(0, len(archivos or ()), 12):          # por tandas: una línea de .bat no puede ser muy larga
             nombres = " ".join(f'"{n}"' for n in archivos[k:k + 12])
-            copias.append(tr('{robocopy} "{origen}" "{destino}" {nombres} /r:2 /w:1 {callado}').format(robocopy=(robocopy), origen=(origen), destino=(destino), nombres=(nombres), callado=(callado)))
+            copias.append(f'{robocopy} "{origen}" "{destino}" {nombres} /r:2 /w:1 {callado}')
     copias += [f'if exist "%APP%\\data\\{sub_}\\" {robocopy} "%APP%\\data\\{sub_}" "%COPIA%\\data\\{sub_}" /e /r:2 /w:1 {callado}' for sub_ in ("datos", "mods", "docs")]
     for orden in copias:
-        lineas += [orden, tr("if %errorlevel% gtr %RC% set RC=%errorlevel%")]
-    lineas.append(apunta(tr("RESULTADO copia_seguridad codigo=%RC%")))
+        lineas += [orden, "if %errorlevel% gtr %RC% set RC=%errorlevel%"]
+    lineas.append(apunta("RESULTADO copia_seguridad codigo=%RC%"))
     lineas += paso("copiar_nueva", f'{robocopy} "%NUEVA%" "%APP%" /e /xd {excluir} /xf {" ".join(ARCHIVOS_VIVOS_SERVIDOR)} /r:3 /w:1 {callado}')
-    lineas += paso("copiar_lib", f'{robocopy} "%NUEVA%\\lib" "%APP%\\lib" /mir /r:3 /w:1 {callado}', si=tr("%NUEVA%\\lib"))
+    lineas += paso("copiar_lib", f'{robocopy} "%NUEVA%\\lib" "%APP%\\lib" /mir /r:3 /w:1 {callado}', si="%NUEVA%\\lib")
     lineas += paso("copiar_datos", f'{robocopy} "%NUEVA%\\data\\datos" "%APP%\\data\\datos" /mir /r:3 /w:1 {callado}', si="%NUEVA%\\data\\datos")
     lineas += [
         'if exist "%APP%\\data\\voces_serie" rmdir /s /q "%APP%\\data\\voces_serie"',     # las voces van ahora en data\voces
-        tr('rmdir /s /q "%NUEVA%"'),
-        tr('rmdir /s /q "%COPIA%"'),
+        'rmdir /s /q "%NUEVA%"',
+        'rmdir /s /q "%COPIA%"',
         apunta("TERMINADA bien %date% %time%"),
         # Si antes de actualizar había un servidor en línea abierto, se vuelve a arrancar igual que estaba. Lo hace el
         # propio juego, ya actualizado, que sabe leer la nota y lo apunta en este mismo registro.
         f'if exist "%NOTA%" start "" /wait "%APP%\\{EJECUTABLE}" {ARG_RELANZAR} "%NOTA%"',
         f'start "" "%APP%\\{EJECUTABLE}" {ARG_TRAS_ACTUALIZAR}',
-        tr("goto fin"),
+        "goto fin",
         ":fallo",
-        apunta(tr("FALLO paso=%PASO% codigo=%RC% motivo=copia")),
-        tr("echo La actualizacion ha fallado. Se restaura la version anterior."),
+        apunta("FALLO paso=%PASO% codigo=%RC% motivo=copia"),
+        "echo La actualizacion ha fallado. Se restaura la version anterior.",
     ]
     # Se devuelve lo que se guardó, que es solo programa: lo que el servidor guardó al cerrarse se queda como lo dejó.
     lineas += paso("restaurar", f'{robocopy} "%COPIA%" "%APP%" /e /r:3 /w:1 {callado}', vital=False)
@@ -642,7 +642,7 @@ def escribir_instalador(nueva, programa=None, pid=None, version=""):
         f'start "" "%APP%\\{EJECUTABLE}" --actualizacion-fallida',
         ":fin",
         "endlocal",
-        tr('(goto) 2>nul & del "%~f0"'),
+        '(goto) 2>nul & del "%~f0"',
     ]
     ruta = os.path.join(trabajo, "instalar_actualizacion.bat")
     with open(ruta, "w", encoding="utf-8", newline="\r\n") as f:
@@ -735,20 +735,21 @@ def leer_registro_instalador(ruta=None):
     paso_actual = ""
     for linea in texto.splitlines():
         linea = linea.strip()
-        if linea.startswith(tr("PASO ")):
-            paso_actual = linea[5:].strip()
-        elif linea.startswith(tr("TERMINADA ")):
-            r["bien"] = linea.split()[1] == "bien"
-        elif linea.startswith(tr("SERVIDOR ")):
+        if linea.startswith("PASO ") or linea.startswith(tr("PASO ")):
+            prefijo = "PASO " if linea.startswith("PASO ") else tr("PASO ")
+            paso_actual = linea[len(prefijo):].strip()
+        elif linea.startswith("TERMINADA ") or linea.startswith(tr("TERMINADA ")):
+            r["bien"] = linea.split()[1] in ("bien", tr("bien"))
+        elif linea.startswith("SERVIDOR ") or linea.startswith(tr("SERVIDOR ")):
             # «SERVIDOR relanzado tipo=consola» o «SERVIDOR sin_relanzar tipo=panel motivo=servicio»
-            m = re.search(r"SERVIDOR (\S+)\s+tipo=(\S+)(?:\s+motivo=(\S+))?", linea)
-            if m and m.group(1) == "relanzado":
+            m = re.search(r"SERVIDOR\s+(\S+)\s+tipo=(\S+)(?:\s+motivo=(\S+))?", linea)
+            if m and m.group(1) in ("relanzado", tr("relanzado")):
                 r["relanzados"].append(m.group(2))
-                if "estado=parado" in linea:                   # un panel que estaba con el servidor parado, y así ha vuelto
+                if "estado=parado" in linea or ("estado=" + tr("parado")) in linea:                   # un panel que estaba con el servidor parado, y así ha vuelto
                     r["parados"] = r.get("parados", 0) + 1
             elif m:
                 r["sin_relanzar"].append((m.group(2), m.group(3) or ""))
-        elif linea.startswith(tr("FALLO ")):
+        elif linea.startswith("FALLO ") or linea.startswith(tr("FALLO ")):
             m = re.search(r"paso=(\S+)\s+codigo=(-?\d+)(?:\s+motivo=(\S+))?", linea)
             if m:
                 r["paso"], r["codigo"], r["motivo"] = m.group(1), int(m.group(2)), m.group(3) or ""
@@ -1203,7 +1204,7 @@ def relanzar_servidores(nota, programa=None, lanzar=None, vivo=None, registro=No
             os.makedirs(os.path.dirname(registro), exist_ok=True)
             with open(registro, "a", encoding="utf-8", newline="\r\n") as f:
                 for tipo, bien, motivo in hecho:
-                    f.write(tr('SERVIDOR {v} tipo={tipo}').format(v=(tr('relanzado') if bien else tr('sin_relanzar')), tipo=(tipo)) + (f" {'estado' if bien else 'motivo'}={motivo}" if motivo else "") + "\n")
+                    f.write(f'SERVIDOR {"relanzado" if bien else "sin_relanzar"} tipo={tipo}' + (f" {'estado' if bien else 'motivo'}={motivo}" if motivo else "") + "\n")
     except OSError:
         pass
     _quitar(nota)
