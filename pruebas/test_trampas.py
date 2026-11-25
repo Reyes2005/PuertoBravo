@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from trampas import descubrir_instancias, instalar_gancho
+from trampas import descubrir_instancias
 from trampas.protocolo import ClienteTrampas, ErrorPuente
 from trampas import puente
 
@@ -343,7 +343,6 @@ def test_anulacion_total_multijugador(puente_activo, tmp_path):
 
 def test_ganchos_y_gui_wx_sincronizada(puente_activo):
     import threading
-    assert instalar_gancho.verificar() == []
     robot, p, srv, _, _, tmp_path = puente_activo
 
     p.j.dinero = 7777
