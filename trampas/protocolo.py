@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import socket
 
+from juego.i18n import tr
+
 from . import descubrir_instancias
 
 MAX_MENSAJE = 4 * 1024 * 1024  # 4 MiB
@@ -27,7 +29,7 @@ def leer_linea_socket(sock: socket.socket, max_bytes: int = MAX_MENSAJE) -> str:
             break
         total += len(chunk)
         if total > max_bytes:
-            raise ErrorPuente("Mensaje recibido demasiado grande.")
+            raise ErrorPuente(tr("Mensaje recibido demasiado grande."))
         trozos.append(chunk)
     return b"".join(trozos).decode("utf-8", errors="replace").strip()
 
@@ -51,7 +53,7 @@ class ClienteTrampas:
         instancias = descubrir_instancias(carpeta)
         if not instancias:
             raise ErrorPuente(
-                "No se encontró ninguna instancia de Puerto Bravo en ejecución con el puente de trampas activo."
+                tr("No se encontró ninguna instancia de Puerto Bravo en ejecución con el puente de trampas activo.")
             )
         ultimo_error: Exception | None = None
         for ficha in instancias:
@@ -61,7 +63,7 @@ class ClienteTrampas:
                 return cliente, dict(ficha, info=info)
             except Exception as exc:
                 ultimo_error = exc
-        raise ErrorPuente(f"No se pudo conectar con Puerto Bravo: {ultimo_error}")
+        raise ErrorPuente(tr("No se pudo conectar con Puerto Bravo: {exc}").format(exc=ultimo_error))
 
     def llamar(self, cmd: str, **args):
         """Envía una orden JSON-RPC al juego y devuelve ``datos`` o lanza ErrorPuente."""
@@ -72,15 +74,15 @@ class ClienteTrampas:
                 sock.sendall(payload)
                 linea = leer_linea_socket(sock)
         except OSError as exc:
-            raise ErrorPuente(f"Sin conexión con el juego ({exc}).") from exc
+            raise ErrorPuente(tr("Sin conexión con el juego ({exc}).").format(exc=exc)) from exc
         if not linea:
-            raise ErrorPuente("El juego cerró la conexión sin responder.")
+            raise ErrorPuente(tr("El juego cerró la conexión sin responder."))
         try:
             resp = json.loads(linea)
         except ValueError as exc:
-            raise ErrorPuente(f"Respuesta inválida del juego: {exc}") from exc
+            raise ErrorPuente(tr("Respuesta inválida del juego: {exc}").format(exc=exc)) from exc
         if not isinstance(resp, dict):
-            raise ErrorPuente("Formato de respuesta inesperado.")
+            raise ErrorPuente(tr("Formato de respuesta inesperado."))
         if not resp.get("ok"):
-            raise ErrorPuente(str(resp.get("error") or "Error desconocido en el juego."))
+            raise ErrorPuente(str(resp.get("error") or tr("Error desconocido en el juego.")))
         return resp.get("datos")

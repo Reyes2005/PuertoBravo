@@ -13,6 +13,8 @@ import sys
 import threading
 import time
 
+from juego.i18n import tr
+
 from . import PROTOCOLO, carpeta_fichas
 from .protocolo import MAX_MENSAJE, leer_linea_socket
 
@@ -137,12 +139,16 @@ _CONSTANTES_NO_FINITAS = {"nan", "+nan", "-nan", "inf", "+inf", "-inf", "infinit
 
 
 def _rechazar_constante_json(nombre: str):
-    raise ValueError(f"Error de sintaxis: no se permite el valor {nombre!r} (usa solo números finitos). No se modificó ni añadió nada.")
+    raise ValueError(
+        tr("Error de sintaxis: no se permite el valor {nombre} (usa solo números finitos). No se modificó ni añadió nada.").format(
+            nombre=repr(nombre)
+        )
+    )
 
 
 def _validar_finito_recursivo(val) -> None:
     if isinstance(val, float) and not math.isfinite(val):
-        raise ValueError("Error de valor: no se permiten números infinitos o NaN. No se modificó ni añadió nada.")
+        raise ValueError(tr("Error de valor: no se permiten números infinitos o NaN. No se modificó ni añadió nada."))
     if isinstance(val, (list, tuple)):
         for elem in val:
             _validar_finito_recursivo(elem)
@@ -155,21 +161,21 @@ def validar_clave_inspector(objetivo: str, clave: str) -> str:
     """Valida el nombre de clave o atributo antes de usarlo o enviarlo desde el Inspector."""
     cruda = "" if clave is None else str(clave)
     if any(c in cruda for c in "\x00\n\r\t"):
-        raise ValueError("Nombre de clave inválido (contiene caracteres de control o saltos de línea). No se modificó ni añadió nada.")
+        raise ValueError(tr("Nombre de clave inválido (contiene caracteres de control o saltos de línea). No se modificó ni añadió nada."))
     limpia = cruda.strip()
     if not limpia:
-        raise ValueError("Falta el nombre de la clave. No se modificó ni añadió nada.")
+        raise ValueError(tr("Falta el nombre de la clave. No se modificó ni añadió nada."))
     if len(limpia) > 80:
-        raise ValueError("Nombre de clave inválido (supera 80 caracteres). No se modificó ni añadió nada.")
+        raise ValueError(tr("Nombre de clave inválido (supera 80 caracteres). No se modificó ni añadió nada."))
     if objetivo in ("jugador", "vehiculo", "vehiculo_actual", "persona") and limpia.startswith("_"):
-        raise ValueError(f"Atributo interno o protegido no editable ({limpia}). No se modificó ni añadió nada.")
+        raise ValueError(tr("Atributo interno o protegido no editable ({limpia}). No se modificó ni añadió nada.").format(limpia=limpia))
     return limpia
 
 
 def parsear_valor_inspector(raw, referencia=None, *, es_nuevo: bool = False, objetivo: str = ""):
     """Valida estrictamente un valor del Inspector; falla con mensaje claro ante cualquier error de sintaxis o tipo."""
     if isinstance(raw, str) and "\x00" in raw:
-        raise ValueError("El valor contiene caracteres nulos no permitidos. No se modificó ni añadió nada.")
+        raise ValueError(tr("El valor contiene caracteres nulos no permitidos. No se modificó ni añadió nada."))
 
     if referencia is not None:
         if isinstance(referencia, bool):
@@ -182,7 +188,11 @@ def parsear_valor_inspector(raw, referencia=None, *, es_nuevo: bool = False, obj
                 return True
             if txt in ("0", "false", "no", "off", "falso"):
                 return False
-            raise ValueError(f"Error de sintaxis/tipo: se esperaba un booleano (true/false o sí/no), recibido {raw!r}. No se modificó ni añadió nada.")
+            raise ValueError(
+                tr("Error de sintaxis/tipo: se esperaba un booleano (true/false o sí/no), recibido {raw}. No se modificó ni añadió nada.").format(
+                    raw=repr(raw)
+                )
+            )
 
         if isinstance(referencia, int) and not isinstance(referencia, bool):
             if isinstance(raw, int) and not isinstance(raw, bool):
@@ -190,40 +200,56 @@ def parsear_valor_inspector(raw, referencia=None, *, es_nuevo: bool = False, obj
             if isinstance(raw, float):
                 if math.isfinite(raw) and raw.is_integer():
                     return int(raw)
-                raise ValueError(f"Error de tipo: se esperaba un número entero exacto, recibido {raw!r}. No se modificó ni añadió nada.")
+                raise ValueError(
+                    tr("Error de tipo: se esperaba un número entero exacto, recibido {raw}. No se modificó ni añadió nada.").format(
+                        raw=repr(raw)
+                    )
+                )
             txt = str(raw).strip()
             if not _RE_ENTERO.fullmatch(txt):
-                raise ValueError(f"Error de sintaxis/tipo: se esperaba un número entero válido (ej. 100), recibido {raw!r}. No se modificó ni añadió nada.")
+                raise ValueError(
+                    tr("Error de sintaxis/tipo: se esperaba un número entero válido (ej. 100), recibido {raw}. No se modificó ni añadió nada.").format(
+                        raw=repr(raw)
+                    )
+                )
             return int(txt)
 
         if isinstance(referencia, float):
             if isinstance(raw, bool):
-                raise ValueError("Error de tipo: se esperaba un número decimal, no un booleano. No se modificó ni añadió nada.")
+                raise ValueError(tr("Error de tipo: se esperaba un número decimal, no un booleano. No se modificó ni añadió nada."))
             try:
                 val = float(raw.strip() if isinstance(raw, str) else raw)
             except (TypeError, ValueError) as exc:
-                raise ValueError(f"Error de sintaxis/tipo: se esperaba un número decimal válido, recibido {raw!r}. No se modificó ni añadió nada.") from exc
+                raise ValueError(
+                    tr("Error de sintaxis/tipo: se esperaba un número decimal válido, recibido {raw}. No se modificó ni añadió nada.").format(
+                        raw=repr(raw)
+                    )
+                ) from exc
             if not math.isfinite(val):
-                raise ValueError("Error de valor: no se permiten números infinitos o NaN. No se modificó ni añadió nada.")
+                raise ValueError(tr("Error de valor: no se permiten números infinitos o NaN. No se modificó ni añadió nada."))
             return val
 
         if isinstance(referencia, (list, dict)):
-            esperado = "una lista JSON ([...])" if isinstance(referencia, list) else "un diccionario JSON ({...})"
+            esperado = tr("una lista JSON ([...])") if isinstance(referencia, list) else tr("un diccionario JSON ({...})")
             if isinstance(raw, str):
                 txt = raw.strip()
                 if not txt:
-                    raise ValueError(f"El valor está vacío: se esperaba {esperado}. No se modificó ni añadió nada.")
+                    raise ValueError(tr("El valor está vacío: se esperaba {esperado}. No se modificó ni añadió nada.").format(esperado=esperado))
                 try:
                     parsed = json.loads(txt, parse_constant=_rechazar_constante_json)
                 except json.JSONDecodeError as exc:
-                    pista = " Recuerda usar comillas dobles (\") en lugar de comillas simples (')." if "'" in txt else ""
-                    raise ValueError(f"Error de sintaxis JSON (línea {exc.lineno}, columna {exc.colno}): {exc.msg}.{pista} No se modificó ni añadió nada.") from exc
+                    pista = tr(" Recuerda usar comillas dobles (\") en lugar de comillas simples (').") if "'" in txt else ""
+                    raise ValueError(
+                        tr("Error de sintaxis JSON (línea {linea}, columna {col}): {msg}.{pista} No se modificó ni añadió nada.").format(
+                            linea=exc.lineno, col=exc.colno, msg=exc.msg, pista=pista
+                        )
+                    ) from exc
             else:
                 parsed = raw
             if isinstance(referencia, list) and not isinstance(parsed, list):
-                raise ValueError(f"Error de tipo: se esperaba {esperado}. No se modificó ni añadió nada.")
+                raise ValueError(tr("Error de tipo: se esperaba {esperado}. No se modificó ni añadió nada.").format(esperado=esperado))
             if isinstance(referencia, dict) and not isinstance(parsed, dict):
-                raise ValueError(f"Error de tipo: se esperaba {esperado}. No se modificó ni añadió nada.")
+                raise ValueError(tr("Error de tipo: se esperaba {esperado}. No se modificó ni añadió nada.").format(esperado=esperado))
             _validar_finito_recursivo(parsed)
             return parsed
 
@@ -237,10 +263,12 @@ def parsear_valor_inspector(raw, referencia=None, *, es_nuevo: bool = False, obj
 
     txt = raw.strip()
     if not txt:
-        raise ValueError("El valor está vacío. Escribe un valor válido (número, booleano, texto o JSON). No se modificó ni añadió nada.")
+        raise ValueError(tr("El valor está vacío. Escribe un valor válido (número, booleano, texto o JSON). No se modificó ni añadió nada."))
     bajo = txt.lower()
     if bajo in _CONSTANTES_NO_FINITAS:
-        raise ValueError(f"Error de valor: no se permite {txt!r} (usa solo números finitos). No se modificó ni añadió nada.")
+        raise ValueError(
+            tr("Error de valor: no se permite {txt} (usa solo números finitos). No se modificó ni añadió nada.").format(txt=repr(txt))
+        )
     if bajo in ("null", "none"):
         return None
     if bajo == "true":
@@ -248,13 +276,17 @@ def parsear_valor_inspector(raw, referencia=None, *, es_nuevo: bool = False, obj
     if bajo == "false":
         return False
     if txt[0] in "'" or txt[-1] in "'":
-        raise ValueError("Error de sintaxis JSON: usa comillas dobles (\") en lugar de comillas simples ('). No se modificó ni añadió nada.")
+        raise ValueError(tr("Error de sintaxis JSON: usa comillas dobles (\") en lugar de comillas simples ('). No se modificó ni añadió nada."))
     if txt[0] in '{["' or txt[-1] in '}]"':
         try:
             parsed = json.loads(txt, parse_constant=_rechazar_constante_json)
         except json.JSONDecodeError as exc:
-            pista = " Recuerda usar comillas dobles (\") en lugar de comillas simples (')." if "'" in txt else ""
-            raise ValueError(f"Error de sintaxis JSON (línea {exc.lineno}, columna {exc.colno}): {exc.msg}.{pista} No se modificó ni añadió nada.") from exc
+            pista = tr(" Recuerda usar comillas dobles (\") en lugar de comillas simples (').") if "'" in txt else ""
+            raise ValueError(
+                tr("Error de sintaxis JSON (línea {linea}, columna {col}): {msg}.{pista} No se modificó ni añadió nada.").format(
+                    linea=exc.lineno, col=exc.colno, msg=exc.msg, pista=pista
+                )
+            ) from exc
         _validar_finito_recursivo(parsed)
         return parsed
     try:
@@ -264,8 +296,9 @@ def parsear_valor_inspector(raw, referencia=None, *, es_nuevo: bool = False, obj
     except json.JSONDecodeError as exc:
         if (es_nuevo and objetivo == "stats") or any(ch in txt for ch in '{}[]:,"\'') or txt[0] in "+-0123456789":
             raise ValueError(
-                f"Error de sintaxis en el valor {txt!r}. Usa JSON válido (número, booleano, lista [...], diccionario {{...}} o texto entre comillas dobles). "
-                "No se modificó ni añadió nada."
+                tr("Error de sintaxis en el valor {txt}. Usa JSON válido (número, booleano, lista [...], diccionario {{...}} o texto entre comillas dobles). No se modificó ni añadió nada.").format(
+                    txt=repr(txt)
+                )
             ) from exc
     return txt
 
@@ -277,13 +310,13 @@ def _convertir_valor(raw, referencia=None):
     if isinstance(raw, str):
         txt = raw.strip()
         if txt.lower() in _CONSTANTES_NO_FINITAS:
-            raise ValueError(f"Valor numérico no finito no permitido: {raw!r}")
+            raise ValueError(tr("Valor numérico no finito no permitido: {raw}").format(raw=repr(raw)))
         if txt.lower() in ("true", "false", "null") or txt.startswith(("{", "[")):
             parsed = json.loads(txt.lower() if txt.lower() in ("true", "false", "null") else txt, parse_constant=_rechazar_constante_json)
             _validar_finito_recursivo(parsed)
             return parsed
     elif isinstance(raw, float) and not math.isfinite(raw):
-        raise ValueError("No se permiten valores numéricos infinitos o NaN.")
+        raise ValueError(tr("No se permiten valores numéricos infinitos o NaN."))
     return raw
 
 
@@ -460,7 +493,7 @@ def _recolectar_catalogos(app) -> dict:
         if isinstance(o, dict) and o.get("id")
     ]
     ids_obj = {o["id"] for o in objetos}
-    for extra_id, extra_nom in (("bidon", "Bidón de gasolina"), ("rueda", "Rueda de repuesto")):
+    for extra_id, extra_nom in (("bidon", tr("Bidón de gasolina")), ("rueda", tr("Rueda de repuesto"))):
         if extra_id not in ids_obj:
             objetos.append({"id": extra_id, "nombre": extra_nom, "precio": 0})
     adultos = datos.get("adultos") if isinstance(datos.get("adultos"), dict) else {}
@@ -650,59 +683,59 @@ def _validar_integridad_campo(objetivo: str, clave: str, nuevo, partida=None) ->
                 isinstance(k, str) and k and isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(float(v))
                 for k, v in nuevo.items()
             ):
-                raise ValueError(f"Formato inválido en '{clave}': todas las cantidades deben ser números finitos. No se modificó nada.")
+                raise ValueError(tr("Formato inválido en '{clave}': todas las cantidades deben ser números finitos. No se modificó nada.").format(clave=clave))
         elif clave in ("territorios", "propiedades"):
             if not isinstance(nuevo, list) or not all(isinstance(x, str) and x for x in nuevo):
-                raise ValueError(f"Formato inválido en '{clave}': debe ser una lista de identificadores de texto. No se modificó nada.")
+                raise ValueError(tr("Formato inválido en '{clave}': debe ser una lista de identificadores de texto. No se modificó nada.").format(clave=clave))
         elif clave in ("salud", "salud_max"):
             if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) <= 0:
-                raise ValueError(f"'{clave}' debe ser un número positivo mayor que 0. No se modificó nada.")
+                raise ValueError(tr("'{clave}' debe ser un número positivo mayor que 0. No se modificó nada.").format(clave=clave))
         elif clave in ("dinero", "banco", "banda", "guardaespaldas"):
             if not isinstance(nuevo, int) or isinstance(nuevo, bool) or nuevo < 0:
-                raise ValueError(f"'{clave}' debe ser un número entero mayor o igual a 0. No se modificó nada.")
+                raise ValueError(tr("'{clave}' debe ser un número entero mayor o igual a 0. No se modificó nada.").format(clave=clave))
         elif clave == "estrellas":
             if not isinstance(nuevo, int) or isinstance(nuevo, bool) or not (0 <= nuevo <= 5):
-                raise ValueError("'estrellas' debe estar entre 0 y 5. No se modificó nada.")
+                raise ValueError(tr("'estrellas' debe estar entre 0 y 5. No se modificó nada."))
         elif clave == "carne_puntos":
             if not isinstance(nuevo, int) or isinstance(nuevo, bool) or not (0 <= nuevo <= 12):
-                raise ValueError("'carne_puntos' debe estar entre 0 y 12. No se modificó nada.")
+                raise ValueError(tr("'carne_puntos' debe estar entre 0 y 12. No se modificó nada."))
         elif clave in ("foco", "animo", "ciudadania", "reputacion", "hambre", "sed", "sueno", "suciedad", "cocina_practica", "perro_hambre", "perro_confianza"):
             if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or not (0.0 <= float(nuevo) <= 100.0):
-                raise ValueError(f"'{clave}' debe estar entre 0 y 100. No se modificó nada.")
+                raise ValueError(tr("'{clave}' debe estar entre 0 y 100. No se modificó nada.").format(clave=clave))
         elif clave == "puntos_busqueda":
             if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) < 0.0:
-                raise ValueError("'puntos_busqueda' debe ser mayor o igual a 0. No se modificó nada.")
+                raise ValueError(tr("'puntos_busqueda' debe ser mayor o igual a 0. No se modificó nada."))
     elif objetivo == "stats":
         if clave == "carreras":
             if not isinstance(nuevo, list) or not all(isinstance(x, str) for x in nuevo):
-                raise ValueError("'stats.carreras' debe ser una lista de identificadores de texto. No se modificó nada.")
+                raise ValueError(tr("'stats.carreras' debe ser una lista de identificadores de texto. No se modificó nada."))
         elif not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) < 0.0:
-            raise ValueError(f"'stats.{clave}' debe ser un número finito mayor o igual a 0. No se modificó nada.")
+            raise ValueError(tr("'stats.{clave}' debe ser un número finito mayor o igual a 0. No se modificó nada.").format(clave=clave))
     elif objetivo == "vehiculo":
         if clave in ("vel_max", "acel", "freno", "salud_max", "tono"):
             if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) <= 0.0:
-                raise ValueError(f"'{clave}' debe ser un número positivo mayor que 0. No se modificó nada.")
+                raise ValueError(tr("'{clave}' debe ser un número positivo mayor que 0. No se modificó nada.").format(clave=clave))
         elif clave in ("salud", "km", "litros", "queroseno") and nuevo is not None:
             if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) < 0.0:
-                raise ValueError(f"'{clave}' debe ser mayor o igual a 0. No se modificó nada.")
+                raise ValueError(tr("'{clave}' debe ser mayor o igual a 0. No se modificó nada.").format(clave=clave))
         elif clave == "nombre":
             if not isinstance(nuevo, str) or not nuevo.strip():
-                raise ValueError("El nombre del vehículo no puede quedar vacío. No se modificó nada.")
+                raise ValueError(tr("El nombre del vehículo no puede quedar vacío. No se modificó nada."))
     elif objetivo == "persona":
         if clave == "salud":
             if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) < 0.0:
-                raise ValueError("'salud' debe ser mayor o igual a 0. No se modificó nada.")
+                raise ValueError(tr("'salud' debe ser mayor o igual a 0. No se modificó nada."))
         elif clave == "vel":
             if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) <= 0.0:
-                raise ValueError("'vel' debe ser mayor que 0. No se modificó nada.")
+                raise ValueError(tr("'vel' debe ser mayor que 0. No se modificó nada."))
         elif clave == "punteria":
             if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or not (0.0 <= float(nuevo) <= 1.0):
-                raise ValueError("'punteria' debe estar entre 0.0 y 1.0. No se modificó nada.")
+                raise ValueError(tr("'punteria' debe estar entre 0.0 y 1.0. No se modificó nada."))
         elif clave == "arma" and nuevo is not None and partida is not None and nuevo not in partida.armas_d:
-            raise ValueError(f"Arma desconocida en el catálogo: {nuevo}. No se modificó nada.")
+            raise ValueError(tr("Arma desconocida en el catálogo: {nuevo}. No se modificó nada.").format(nuevo=nuevo))
         elif clave == "nombre":
             if not isinstance(nuevo, str) or not nuevo.strip():
-                raise ValueError("El nombre de la persona no puede quedar vacío. No se modificó nada.")
+                raise ValueError(tr("El nombre de la persona no puede quedar vacío. No se modificó nada."))
 
 
 def despachar(app, cmd: str, args: dict | None = None):
@@ -722,9 +755,9 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
     srv = getattr(app, "_puente_trampas", None)
     forzado = bool(getattr(srv, "_forzado", False)) if srv is not None else False
     if srv is not None and not forzado and not trampas_habilitadas_en_juego(app):
-        raise ValueError("El menú de trampas está desactivado en Opciones.")
+        raise ValueError(tr("El menú de trampas está desactivado en Opciones."))
     if puente_bloqueado(app):
-        raise ValueError("Comunicación anulada: modo multijugador activo.")
+        raise ValueError(tr("Comunicación anulada: modo multijugador activo."))
     args = args or {}
     from juego import VERSION, azar, config, gente, mochila, sistemas
     from juego.entidades import Jugador, Objeto, Persona, Vehiculo
@@ -750,21 +783,25 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
 
     if cmd == "cfg.set":
         if _en_linea_bloqueado(p):
-            raise ValueError("Bloqueado en servidores o partidas en línea.")
+            raise ValueError(tr("Bloqueado en servidores o partidas en línea."))
         cambios = args.get("cambios")
         if not isinstance(cambios, dict):
             if "clave" not in args:
-                raise ValueError("Falta la clave de configuración a modificar.")
+                raise ValueError(tr("Falta la clave de configuración a modificar."))
             cambios = {args["clave"]: args.get("valor")}
         preparados = {}
         for raw_clave, val in cambios.items():
             clave = validar_clave_inspector("cfg", str(raw_clave))
             if clave not in app.cfg.v:
-                raise ValueError(f"Opción desconocida en cfg: {clave}. No se modificó nada.")
+                raise ValueError(tr("Opción desconocida en cfg: {clave}. No se modificó nada.").format(clave=clave))
             ref = config.POR_DEFECTO.get(clave, app.cfg.v[clave])
             conv = parsear_valor_inspector(val, ref, es_nuevo=False, objetivo="cfg")
             if clave in config.OPCIONES and conv not in config.OPCIONES[clave]:
-                raise ValueError(f"Valor no permitido para {clave}: {conv}. Opciones válidas: {config.OPCIONES[clave]}. No se modificó nada.")
+                raise ValueError(
+                    tr("Valor no permitido para {clave}: {conv}. Opciones válidas: {ops}. No se modificó nada.").format(
+                        clave=clave, conv=conv, ops=config.OPCIONES[clave]
+                    )
+                )
             preparados[clave] = conv
         adultos_antes = app.cfg["adultos"]
         for clave, conv in preparados.items():
@@ -774,7 +811,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         return {"aplicados": preparados}
 
     if p is None:
-        raise ValueError("No hay ninguna partida cargada en este momento.")
+        raise ValueError(tr("No hay ninguna partida cargada en este momento."))
 
     if cmd == "vehiculos.listar":
         px, py = p.pos()
@@ -803,7 +840,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         if objetivo in ("vehiculo", "vehiculo_actual"):
             v = _buscar_vehiculo(p, args.get("id"))
             if v is None:
-                raise ValueError("Vehículo no encontrado.")
+                raise ValueError(tr("Vehículo no encontrado."))
             campos = {}
             for k in sorted(CAMPOS_INSPECTOR_VEHICULO):
                 if hasattr(v, k):
@@ -814,14 +851,14 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         if objetivo == "persona":
             per = _buscar_persona(p, args.get("id"))
             if per is None:
-                raise ValueError("Persona no encontrada.")
+                raise ValueError(tr("Persona no encontrada."))
             campos = {k: getattr(per, k) for k in sorted(CAMPOS_INSPECTOR_PERSONA) if hasattr(per, k)}
             return {"objetivo": "persona", "id": per.id, "campos": _json_seguro(campos)}
-        raise ValueError(f"Objetivo de inspector no soportado: {objetivo}")
+        raise ValueError(tr("Objetivo de inspector no soportado: {objetivo}").format(objetivo=objetivo))
 
     # A partir de aquí, todo son comandos de escritura en la partida
     if cmd not in COMANDOS_LECTURA and _en_linea_bloqueado(p):
-        raise ValueError("Bloqueado: no se permiten trampas en servidores ni partidas en línea.")
+        raise ValueError(tr("Bloqueado: no se permiten trampas en servidores ni partidas en línea."))
 
     j = p.j
 
@@ -833,7 +870,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         valor = args.get("valor")
         if objetivo == "jugador":
             if clave not in CAMPOS_INSPECTOR_JUGADOR or not hasattr(j, clave) or callable(getattr(j, clave)):
-                raise ValueError(f"Campo no editable desde el Inspector por seguridad de la partida: {clave}. No se modificó ni añadió nada.")
+                raise ValueError(tr("Campo no editable desde el Inspector por seguridad de la partida: {clave}. No se modificó ni añadió nada.").format(clave=clave))
             actual = getattr(j, clave)
             nuevo = parsear_valor_inspector(valor, actual, es_nuevo=False, objetivo="jugador")
             _validar_integridad_campo("jugador", clave, nuevo, p)
@@ -842,7 +879,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         elif objetivo == "stats":
             stats_def = _JugadorDef().stats
             if clave not in stats_def:
-                raise ValueError(f"Estadística no permitida en el Inspector ({clave}): solo se admiten claves registradas. No se modificó ni añadió nada.")
+                raise ValueError(tr("Estadística no permitida en el Inspector ({clave}): solo se admiten claves registradas. No se modificó ni añadió nada.").format(clave=clave))
             ref = j.stats.get(clave, stats_def[clave])
             nuevo = parsear_valor_inspector(valor, ref, es_nuevo=False, objetivo="stats")
             _validar_integridad_campo("stats", clave, nuevo, p)
@@ -850,16 +887,16 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             j.stats[clave] = nuevo
         elif objetivo == "cfg":
             if clave in CAMPOS_INSPECTOR_CFG_EXCLUIDOS:
-                raise ValueError(f"Opción protegida en el Inspector: {clave}. No se modificó nada.")
+                raise ValueError(tr("Opción protegida en el Inspector: {clave}. No se modificó nada.").format(clave=clave))
             res_cfg = despachar(app, "cfg.set", {"clave": clave, "valor": valor})
             ruta_respaldo = _respaldar_antes_de_inspector(app, p)
             return {"ok": True, "clave": clave, "valor": _json_seguro(res_cfg["aplicados"][clave]), "respaldo": ruta_respaldo}
         elif objetivo in ("vehiculo", "vehiculo_actual"):
             v = _buscar_vehiculo(p, args.get("id"))
             if v is None:
-                raise ValueError("Vehículo no encontrado. No se modificó nada.")
+                raise ValueError(tr("Vehículo no encontrado. No se modificó nada."))
             if clave not in CAMPOS_INSPECTOR_VEHICULO:
-                raise ValueError(f"Campo de vehículo no editable desde el Inspector: {clave}. No se modificó ni añadió nada.")
+                raise ValueError(tr("Campo de vehículo no editable desde el Inspector: {clave}. No se modificó ni añadió nada.").format(clave=clave))
             if clave in ("vel_max", "acel", "freno", "tono") and not hasattr(v, clave):
                 nuevo = parsear_valor_inspector(valor, v.modelo.get(clave), es_nuevo=False, objetivo="vehiculo")
                 _validar_integridad_campo("vehiculo", clave, nuevo, p)
@@ -868,7 +905,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
                 v.modelo[clave] = nuevo
             else:
                 if not hasattr(v, clave) or callable(getattr(v, clave)):
-                    raise ValueError(f"Atributo inexistente en Vehículo: {clave}. No se modificó ni añadió nada.")
+                    raise ValueError(tr("Atributo inexistente en Vehículo: {clave}. No se modificó ni añadió nada.").format(clave=clave))
                 actual = getattr(v, clave)
                 nuevo = parsear_valor_inspector(valor, actual, es_nuevo=False, objetivo="vehiculo")
                 _validar_integridad_campo("vehiculo", clave, nuevo, p)
@@ -877,16 +914,16 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         elif objetivo == "persona":
             per = _buscar_persona(p, args.get("id"))
             if per is None:
-                raise ValueError("Persona no encontrada. No se modificó nada.")
+                raise ValueError(tr("Persona no encontrada. No se modificó nada."))
             if clave not in CAMPOS_INSPECTOR_PERSONA or not hasattr(per, clave) or callable(getattr(per, clave)):
-                raise ValueError(f"Campo de persona no editable desde el Inspector: {clave}. No se modificó ni añadió nada.")
+                raise ValueError(tr("Campo de persona no editable desde el Inspector: {clave}. No se modificó ni añadió nada.").format(clave=clave))
             actual = getattr(per, clave)
             nuevo = parsear_valor_inspector(valor, actual, es_nuevo=False, objetivo="persona")
             _validar_integridad_campo("persona", clave, nuevo, p)
             ruta_respaldo = _respaldar_antes_de_inspector(app, p)
             setattr(per, clave, nuevo)
         else:
-            raise ValueError(f"Objetivo no soportado: {objetivo}. No se modificó ni añadió nada.")
+            raise ValueError(tr("Objetivo no soportado: {objetivo}. No se modificó ni añadió nada.").format(objetivo=objetivo))
         return {"ok": True, "clave": clave, "valor": _json_seguro(nuevo), "respaldo": ruta_respaldo}
 
     if cmd == "jugador.set":
@@ -976,7 +1013,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
     if cmd == "jugador.habilidad":
         hab = str(args.get("habilidad", ""))
         if hab not in j.hab:
-            raise ValueError(f"Habilidad desconocida: {hab}")
+            raise ValueError(tr("Habilidad desconocida: {hab}").format(hab=hab))
         if "nivel" in args and args["nivel"] is not None:
             niv = max(0, min(10, int(args["nivel"])))
             j.hab[hab] = float(60 * niv * niv)
@@ -989,12 +1026,12 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         if lugar_id:
             l = p.lug(lugar_id)
             if l is None:
-                raise ValueError(f"Lugar no encontrado: {lugar_id}")
+                raise ValueError(tr("Lugar no encontrado: {lugar_id}").format(lugar_id=lugar_id))
             mapa_id, x, y = l.mapa, float(l.x), float(l.y)
         else:
             mapa_id = str(args.get("mapa_id") or p.mundo.id)
             if mapa_id not in p.mapas:
-                raise ValueError(f"Mapa no encontrado: {mapa_id}")
+                raise ValueError(tr("Mapa no encontrado: {mapa_id}").format(mapa_id=mapa_id))
             m = p.mapas[mapa_id]
             x = float(args["x"]) if "x" in args and args["x"] is not None else float(m.ancho) * 0.5
             y = float(args["y"]) if "y" in args and args["y"] is not None else float(m.alto) * 0.5
@@ -1025,7 +1062,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             ident = str(args["dia_azar"])
             encontrado = next((d for d in azar.DIAS if d[0] == ident), None)
             if encontrado is None:
-                raise ValueError(f"Tipo de día desconocido: {ident}")
+                raise ValueError(tr("Tipo de día desconocido: {ident}").format(ident=ident))
             p.dia_azar = {"id": encontrado[0], "texto": encontrado[2], "efectos": dict(encontrado[3]), "dia": p.dia}
         return {"dia": p.dia, "reloj": p.reloj, "lluvia": p.lluvia, "dia_azar": p.dia_azar}
 
@@ -1044,11 +1081,11 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
                 }
             return {"total_armas": len(j.armas)}
         if not ident or ident not in p.armas_d:
-            raise ValueError(f"Arma desconocida: {ident}")
+            raise ValueError(tr("Arma desconocida: {ident}").format(ident=ident))
         a = p.armas_d[ident]
         if accion == "quitar":
             if ident == "punos":
-                raise ValueError("No se pueden quitar los puños.")
+                raise ValueError(tr("No se pueden quitar los puños."))
             j.armas.pop(ident, None)
             if j.arma == ident:
                 j.arma = "punos"
@@ -1083,7 +1120,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         cantidad = int(args.get("cantidad", 1))
         if tipo == "objeto":
             if not ident:
-                raise ValueError("Falta el identificador del objeto.")
+                raise ValueError(tr("Falta el identificador del objeto."))
             if ident == "chaleco":
                 j.blindaje = 100.0
             else:
@@ -1101,7 +1138,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             return {"mochila": _json_seguro(j.mochila)}
         if tipo == "valor":
             if ident not in mochila.CATALOGO:
-                raise ValueError(f"Objeto de valor desconocido: {ident}")
+                raise ValueError(tr("Objeto de valor desconocido: {ident}").format(ident=ident))
             robado = bool(args.get("robado", False))
             anadidos = 0
             for _ in range(max(1, cantidad)):
@@ -1111,7 +1148,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             return {"anadidos": anadidos, "mochila": _json_seguro(j.mochila)}
         if tipo == "sustancia":
             if not ident:
-                raise ValueError("Falta la sustancia.")
+                raise ValueError(tr("Falta la sustancia."))
             if args.get("fijar"):
                 j.sustancias[ident] = max(0, cantidad)
             else:
@@ -1119,15 +1156,15 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             return {"sustancias": _json_seguro(j.sustancias)}
         if tipo == "producto":
             if not ident:
-                raise ValueError("Falta el producto.")
+                raise ValueError(tr("Falta el producto."))
             j.encima.append({"id": ident, "n": max(1, cantidad), "cad": p.dia + 7})
             return {"encima": _json_seguro(j.encima)}
-        raise ValueError(f"Tipo de inventario no soportado: {tipo}")
+        raise ValueError(tr("Tipo de inventario no soportado: {tipo}").format(tipo=tipo))
 
     if cmd == "vehiculos.crear":
         modelo_id = str(args.get("modelo_id", "utilitario"))
         if modelo_id not in p.modelos:
-            raise ValueError(f"Modelo de vehículo desconocido: {modelo_id}")
+            raise ValueError(tr("Modelo de vehículo desconocido: {modelo_id}").format(modelo_id=modelo_id))
         mo = p.modelos[modelo_id]
         x, y, d = _punto_spawn_vehiculo(p, mo)
         ia = args.get("ia", "aparcado")
@@ -1157,7 +1194,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
     if cmd == "vehiculos.editar":
         v = _buscar_vehiculo(p, args.get("id"))
         if v is None:
-            raise ValueError("Vehículo no encontrado.")
+            raise ValueError(tr("Vehículo no encontrado."))
         solo_este = bool(args.get("solo_este", True))
         specs = args.get("specs") or {}
         if specs:
@@ -1224,7 +1261,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             return {"quitados": quitados}
         v = _buscar_vehiculo(p, args.get("id"))
         if v is None:
-            raise ValueError("Vehículo no encontrado.")
+            raise ValueError(tr("Vehículo no encontrado."))
         if accion == "subir":
             if j.veh is not None and j.veh is not v:
                 p.salir_vehiculo(forzado=True)
@@ -1245,7 +1282,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             p.quitar_vehiculo(v)
             return {"eliminado": True}
         else:
-            raise ValueError(f"Acción de vehículo desconocida: {accion}")
+            raise ValueError(tr("Acción de vehículo desconocida: {accion}").format(accion=accion))
         return {"vehiculo": _info_vehiculo(p, v)}
 
     if cmd == "npcs.crear":
@@ -1345,12 +1382,12 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
     if cmd == "npcs.editar":
         per = _buscar_persona(p, args.get("id"))
         if per is None:
-            raise ValueError("Persona no encontrada.")
+            raise ValueError(tr("Persona no encontrada."))
         for k in ("nombre", "estado", "banda", "arma"):
             if k in args and args[k] is not None:
                 val = args[k]
                 if k == "arma" and val not in p.armas_d and val not in ("", None):
-                    raise ValueError(f"Arma desconocida: {val}")
+                    raise ValueError(tr("Arma desconocida: {val}").format(val=val))
                 setattr(per, k, None if val == "" else val)
         for k in ("salud", "punteria", "vel"):
             if k in args and args[k] is not None:
@@ -1392,7 +1429,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             return {"eliminados": n}
         per = _buscar_persona(p, args.get("id"))
         if per is None:
-            raise ValueError("Persona no encontrada.")
+            raise ValueError(tr("Persona no encontrada."))
         if accion == "matar":
             per.muerto = True
             per.salud = 0.0
@@ -1418,7 +1455,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             per.agresor = False
             per.estado = "quieto"
         else:
-            raise ValueError(f"Acción de NPC desconocida: {accion}")
+            raise ValueError(tr("Acción de NPC desconocida: {accion}").format(accion=accion))
         return {"persona": _info_persona(p, per)}
 
     if cmd == "policia.set":
@@ -1461,21 +1498,21 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
             pos = p._punto_cercano(22, 55) or p.mundo.punto_libre(px + 25.0, py + 10.0)
             ex, ey = pos
             if tipo == "suceso_maletin":
-                o = Objeto("dinero", "Maletín perdido", ex, ey)
+                o = Objeto("dinero", tr("Maletín perdido"), ex, ey)
                 o.valor = int(args.get("valor", random.randint(250, 900)))
                 p.objetos.append(o)
                 p.evento = {"tipo": "maletin", "t": 180.0, "objeto": o}
                 return {"evento": "maletin", "pos": (ex, ey), "valor": o.valor}
             personas = []
             if tipo == "suceso_atraco":
-                vic = Persona("civil", ex, ey, "Víctima del atraco")
+                vic = Persona("civil", ex, ey, tr("Víctima del atraco"))
                 vic.estado = "quieto"
                 vic.tag = "evento"
                 personas.append(vic)
-                n, clase, nombre = 1, "atracador", "Atracador"
+                n, clase, nombre = 1, "atracador", tr("Atracador")
             else:
                 n = max(2, int(args.get("cantidad", 3)))
-                clase, nombre = "pandillero_calle", "Pandillero"
+                clase, nombre = "pandillero_calle", tr("Pandillero")
             for _ in range(n):
                 f = gente.enemigo(gente.grupo(clase, tipo=nombre, arma=random.choice(["navaja", "pistola", "bate"]), salud=55))
                 e = gente.vestir(Persona("enemigo", *p.mundo.punto_libre(ex + random.uniform(-3, 3), ey + random.uniform(-3, 3)), f["nombre"]), f)
@@ -1494,7 +1531,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
                 vx, vy, vd = _punto_spawn_vehiculo(p, p.modelos[modelo_id])
             else:
                 vx, vy, vd = pos
-            v = p.crear_vehiculo(modelo_id, vx, vy, vd, ia="huida", nombre=args.get("nombre") or f"Fugitivo ({p.modelos[modelo_id]['nombre']})", tag="persecucion")
+            v = p.crear_vehiculo(modelo_id, vx, vy, vd, ia="huida", nombre=args.get("nombre") or tr("Fugitivo ({nombre})").format(nombre=p.modelos[modelo_id]['nombre']), tag="persecucion")
             v.hostil = True
             v.ocupado = True
             v.vel_obj = float(args.get("vel_obj", 24.0))
@@ -1522,7 +1559,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         if tipo == "atraco_local_cercano":
             cands = [l for l in p.mundo.lugares.values() if p.local_atracable(l)]
             if not cands:
-                raise ValueError("No hay locales atracables en este mapa.")
+                raise ValueError(tr("No hay locales atracables en este mapa."))
             l = min(cands, key=lambda l: math.hypot(l.x - px, l.y - py))
             p.atracadas.pop(l.id, None)
             j.locales_vetados.pop(l.id, None)
@@ -1536,7 +1573,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         if tipo == "atraco_banco_cercano":
             bancos = [l for l in p.mundo.lugares.values() if l.tipo == "banco"]
             if not bancos:
-                raise ValueError("No hay bancos en este mapa.")
+                raise ValueError(tr("No hay bancos en este mapa."))
             l = min(bancos, key=lambda l: math.hypot(l.x - px, l.y - py))
             p.atracadas.pop("banco:" + l.id, None)
             if p.arma()["tipo"] != "fuego":
@@ -1562,7 +1599,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         if tipo == "soltar_dinero":
             valor = max(1, int(args.get("valor", 1000)))
             ox, oy = p.mundo.punto_libre(px + 2.5, py)
-            o = Objeto("dinero", f"Maletín con {valor} euros", ox, oy)
+            o = Objeto("dinero", tr("Maletín con {valor} euros").format(valor=valor), ox, oy)
             o.valor = valor
             p.objetos.append(o)
             return {"valor": valor, "pos": (ox, oy)}
@@ -1570,7 +1607,7 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         if tipo == "contrato":
             cands = [l for l in p.mundo.lugares.values() if l.tipo not in ("salida", "embarcadero")]
             if not cands:
-                raise ValueError("No hay lugares disponibles en este mapa para iniciar un contrato.")
+                raise ValueError(tr("No hay lugares disponibles en este mapa para iniciar un contrato."))
             l = min(cands, key=lambda q: math.hypot(q.x - px, q.y - py))
             p.empezar_contrato(l)
             return {"iniciado": True, "mision": p.mision["def"]["titulo"] if p.mision else None}
@@ -1578,14 +1615,14 @@ def _despachar_interno(app, cmd: str, args: dict | None = None):
         if tipo == "encargo_coche":
             cands = [l for l in p.mundo.lugares.values() if l.tipo not in ("salida", "embarcadero")]
             if not cands:
-                raise ValueError("No hay lugares disponibles en este mapa para iniciar un encargo.")
+                raise ValueError(tr("No hay lugares disponibles en este mapa para iniciar un encargo."))
             l = min(cands, key=lambda q: math.hypot(q.x - px, q.y - py))
             p.empezar_encargo_coche(l)
             return {"iniciado": True, "mision": p.mision["def"]["titulo"] if p.mision else None}
 
-        raise ValueError(f"Tipo de evento desconocido: {tipo}")
+        raise ValueError(tr("Tipo de evento desconocido: {tipo}").format(tipo=tipo))
 
-    raise ValueError(f"Comando desconocido: {cmd}")
+    raise ValueError(tr("Comando desconocido: {cmd}").format(cmd=cmd))
 
 
 class ServidorPuente:
@@ -1662,7 +1699,7 @@ class ServidorPuente:
             if not self._sem_conns.acquire(blocking=False):
                 try:
                     conn.settimeout(0.5)
-                    self._enviar(conn, {"ok": False, "error": "Demasiadas conexiones simultáneas en el puente."})
+                    self._enviar(conn, {"ok": False, "error": tr("Demasiadas conexiones simultáneas en el puente.")})
                 except Exception:
                     pass
                 finally:
@@ -1692,12 +1729,12 @@ class ServidorPuente:
                         return
                     req = json.loads(linea)
                 except Exception as exc:
-                    self._enviar(conn, {"ok": False, "error": f"Petición inválida: {exc}"})
+                    self._enviar(conn, {"ok": False, "error": tr("Petición inválida: {exc}").format(exc=exc)})
                     return
                 if puente_bloqueado(self.app) or not self._activo:
                     return
                 if not isinstance(req, dict) or not secrets.compare_digest(str(req.get("token", "")), self.token):
-                    self._enviar(conn, {"ok": False, "error": "Token de autenticación inválido."})
+                    self._enviar(conn, {"ok": False, "error": tr("Token de autenticación inválido.")})
                     return
                 cmd = str(req.get("cmd", ""))
                 args = req.get("args") if isinstance(req.get("args"), dict) else {}
@@ -1706,12 +1743,12 @@ class ServidorPuente:
                 try:
                     self._cola.put_nowait((cmd, args, ev, caja))
                 except queue.Full:
-                    self._enviar(conn, {"ok": False, "error": "Cola de comandos llena; intenta de nuevo."})
+                    self._enviar(conn, {"ok": False, "error": tr("Cola de comandos llena; intenta de nuevo.")})
                     return
                 if not ev.wait(timeout=4.5):
-                    self._enviar(conn, {"ok": False, "error": "Tiempo de espera agotado ejecutando el comando en el juego."})
+                    self._enviar(conn, {"ok": False, "error": tr("Tiempo de espera agotado ejecutando el comando en el juego.")})
                     return
-                self._enviar(conn, caja.get("resp", {"ok": False, "error": "Sin respuesta."}))
+                self._enviar(conn, caja.get("resp", {"ok": False, "error": tr("Sin respuesta.")}))
         finally:
             self._sem_conns.release()
 
@@ -1754,7 +1791,7 @@ class ServidorPuente:
         """Anula inmediatamente la comunicación al entrar en servidor o partida con amigos."""
         self._suspendido = True
         self._cerrar_red()
-        self._vaciar_cola("Comunicación anulada: modo multijugador activo.")
+        self._vaciar_cola(tr("Comunicación anulada: modo multijugador activo."))
 
     def atender(self, max_ops: int = 25) -> None:
         """Drena comandos pendientes desde el hilo principal de Pygame."""
@@ -1791,7 +1828,7 @@ class ServidorPuente:
         self._cerrado = True
         self._suspendido = False
         self._cerrar_red()
-        self._vaciar_cola("Puente detenido.")
+        self._vaciar_cola(tr("Puente detenido."))
 
 
 def iniciar(app, forzar: bool = False, carpeta: str | None = None) -> ServidorPuente | None:

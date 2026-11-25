@@ -7,6 +7,14 @@ if getattr(sys, "frozen", False):
 
 
 def main():
+    from juego import config, i18n
+
+    try:
+        cfg = config.Config()
+        i18n.cargar(cfg.v.get("idioma"))
+    except Exception:
+        i18n.cargar()
+
     from trampas.ventana import ejecutar
     ejecutar()
 

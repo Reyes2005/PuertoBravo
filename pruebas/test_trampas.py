@@ -903,3 +903,33 @@ def test_ventana_trampas_accesibilidad_y_teclado():
         v.Destroy()
         app_wx.ProcessPendingEvents()
         app_wx.Destroy()
+
+
+def test_ventana_trampas_i18n_ingles(monkeypatch):
+    try:
+        import wx
+        app_wx = wx.App(False)
+    except Exception as exc:
+        pytest.skip(f"Sin entorno gráfico wx disponible: {exc}")
+
+    from juego import i18n
+    import trampas.ventana as V
+    from editor.accesibilidad import revision_teclado
+
+    previo = i18n.actual()
+    monkeypatch.setenv("PUERTOBRAVO_IDIOMA", "en")
+    wx.HelpProvider.Set(wx.SimpleHelpProvider())
+    i18n.cargar("en")
+    v = V.VentanaTrampas(auto_conectar=False, intervalo_ms=0)
+    try:
+        assert v.GetTitle() == "Cheat Menu — Puerto Bravo"
+        assert v.libro.GetPageText(0) == "Player"
+        problemas = revision_teclado.revisar_teclado(v, teclas_propias=["F5"])
+        assert problemas == [], revision_teclado.informe(problemas)
+    finally:
+        v.Close()
+        v.Destroy()
+        app_wx.ProcessPendingEvents()
+        app_wx.Destroy()
+        monkeypatch.undo()
+        i18n.cargar(previo)
