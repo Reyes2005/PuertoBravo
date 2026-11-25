@@ -1,6 +1,6 @@
 {
-  "Cocina sin laboratorio": "Nấu khi không còn phòng thí nghiệm",
-  "Cuando el laboratorio donde cocinaba ya no está. Una por línea.": "Khi phòng thí nghiệm nơi họ nấu không còn nữa. Mỗi dòng một câu.",
-  "En {casa} ya no hay laboratorio, y {n} se queda sin nada que cocinar. Dale otra tarea desde su ficha.": "Ở {casa} không còn phòng thí nghiệm, và {n} không còn gì để nấu. Hãy giao nhiệm vụ khác từ hồ sơ của họ.",
-  "{n} iba a cocinar en {casa}, pero allí ya no tienes laboratorio. Se queda sin tarea hasta que le des otra desde su ficha.": "{n} định nấu ở {casa}, nhưng ở đó bạn không còn phòng thí nghiệm. Họ không có nhiệm vụ cho đến khi bạn giao việc khác từ hồ sơ của họ."
+  "Cocina sin laboratorio": "Điều chế khi không còn phòng thí nghiệm",
+  "Cuando el laboratorio donde cocinaba ya no está. Una por línea.": "Khi phòng thí nghiệm nơi họ điều chế không còn nữa. Mỗi dòng một câu.",
+  "En {casa} ya no hay laboratorio, y {n} se queda sin nada que cocinar. Dale otra tarea desde su ficha.": "Ở {casa} không còn phòng thí nghiệm, và {n} không còn gì để điều chế. Hãy giao việc khác từ hồ sơ của người này.",
+  "{n} iba a cocinar en {casa}, pero allí ya no tienes laboratorio. Se queda sin tarea hasta que le des otra desde su ficha.": "{n} định điều chế tại {casa}, nhưng ở đó bạn không còn phòng thí nghiệm. Người này sẽ không có việc làm cho đến khi bạn giao việc khác từ hồ sơ của họ."
 }

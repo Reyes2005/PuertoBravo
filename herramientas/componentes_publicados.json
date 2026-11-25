@@ -4035,8 +4035,8 @@
   ]
  },
  "idioma-vi": {
-  "version": 5,
-  "huella": "180362ed1b2b19b62a83597bd8250cc2f700ead15fbd8840a66a057503ed17c6",
+  "version": 6,
+  "huella": "74c97658807a9dc18779b94f9ebaf12ac773b222ae184665c49fae4b09eb4e16",
   "archivos": [
    "data/idiomas/vi/idioma.json",
    "data/idiomas/vi/palabras.json",

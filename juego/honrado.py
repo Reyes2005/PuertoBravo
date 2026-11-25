@@ -977,7 +977,7 @@ class Honrado:
         e["nivel"] = int(e["nivel"]) + 1
         self.j.stats["mejoras_negocio"] = self.j.stats.get("mejoras_negocio", 0) + 1
         self.son("mision_ok", cat="interfaz")
-        self.decir(tr('{nombre}: {nombre2} sube al nivel {nivel}. Ahora da {ingreso_negocio} euros al día y admite {hon_max_empleados} empleados.').format(nombre=(m['nombre']), nombre2=(l.nombre), nivel=(e['nivel']), ingreso_negocio=(self.ingreso_negocio(l)), hon_max_empleados=(self.hon_max_empleados(e))), True)
+        self.decir(tr('{nombre}: {nombre2} sube al nivel {nivel}. Ahora da {ingreso_negocio} euros al día y admite {hon_max_empleados} empleados.').format(nombre=tr(m['nombre']), nombre2=(l.nombre), nivel=(e['nivel']), ingreso_negocio=(self.ingreso_negocio(l)), hon_max_empleados=(self.hon_max_empleados(e))), True)
 
     def hon_empleado(self, l, d):
         """Contratar (1) o despedir (-1) a un empleado de un negocio tuyo."""

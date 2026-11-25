@@ -310,7 +310,7 @@ def opciones_negocio(p, l, refrescar):
         if not mj:
             return tr("Mejoras: el negocio ya está en su nivel más alto")
         motivo = p.hon_mejora_motivo(l)
-        return tr('Mejorar: {nombre}, por {hon_mejora_coste} euros. Sube lo que da un {int} por ciento sobre la base y admite un empleado más').format(nombre=(mj['nombre']), hon_mejora_coste=(p.hon_mejora_coste(l, mj)), int=(int(_n(mj, 'ingresos')))) + (f". {motivo}" if motivo else "")
+        return tr('Mejorar: {nombre}, por {hon_mejora_coste} euros. Sube lo que da un {int} por ciento sobre la base y admite un empleado más').format(nombre=tr(mj['nombre']), hon_mejora_coste=(p.hon_mejora_coste(l, mj)), int=(int(_n(mj, 'ingresos')))) + (f". {motivo}" if motivo else "")
 
     def hacer(f, *a):
         return lambda: (f(l, *a), refrescar())
