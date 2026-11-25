@@ -151,7 +151,7 @@ class VentanaTrampas(wx.Frame):
         self.CreateStatusBar()
         self.SetStatusText(tr("Listo. Ctrl+H lee la ayuda; F5 sincroniza todos los campos con el juego."))
 
-        self.btn_conectar.Bind(wx.EVT_BUTTON, lambda e: self.conectar(anunciar=True))
+        self.btn_conectar.Bind(wx.EVT_BUTTON, lambda e: self._alternar_conexion())
         self.btn_refrescar.Bind(wx.EVT_BUTTON, lambda e: self.refrescar_todo(anunciar=True))
         self.Bind(wx.EVT_CHAR_HOOK, self._tecla_global)
         self.Bind(wx.EVT_CLOSE, self._al_cerrar)
@@ -1083,10 +1083,45 @@ class VentanaTrampas(wx.Frame):
         except Exception:
             pass
 
+    def _actualizar_boton_conexion(self) -> None:
+        if self.cliente is not None:
+            self.btn_conectar.SetLabel(tr("&2 Desconectar"))
+            self.btn_conectar.SetHelpText(tr("Cierra la conexión actual con Puerto Bravo."))
+        else:
+            self.btn_conectar.SetLabel(tr("&2 Conectar"))
+            self.btn_conectar.SetHelpText(tr("Busca y conecta con el proceso de Puerto Bravo seleccionado."))
+
+    def _alternar_conexion(self) -> None:
+        if self.cliente is not None:
+            self.desconectar(anunciar=True)
+        else:
+            self.conectar(anunciar=True)
+
+    def desconectar(self, anunciar: bool = True) -> None:
+        self.cliente = None
+        self.estado = {}
+        self._ultimo_resumen = ""
+        self._ultimas_claves_veh = []
+        self._ultimas_claves_npc = []
+        self._actualizar_boton_conexion()
+        msg = tr("Desconectado. Pulsa Conectar cuando quieras volver a enlazar con Puerto Bravo.")
+        self.txt_conexion.SetValue(msg)
+        self.SetStatusText(msg)
+        if anunciar:
+            _hablar(msg)
+
     def conectar(self, anunciar: bool = True) -> bool:
+        if self.cliente is not None:
+            self._actualizar_boton_conexion()
+            msg = tr("Ya estás conectado con Puerto Bravo. Pulsa Desconectar si quieres cerrar la conexión actual.")
+            self.SetStatusText(msg)
+            if anunciar:
+                _hablar(msg)
+            return True
         self.instancias = descubrir_instancias()
         if not self.instancias:
             self.cliente = None
+            self._actualizar_boton_conexion()
             self.sel_instancia.Set([tr("(ninguna detectada)")])
             self.sel_instancia.SetSelection(0)
             self.txt_conexion.SetValue(
@@ -1107,6 +1142,7 @@ class VentanaTrampas(wx.Frame):
             cli = ClienteTrampas.desde_ficha(ficha)
             hola = cli.llamar("hola")
             self.cliente = cli
+            self._actualizar_boton_conexion()
             self.catalogos = cli.llamar("catalogos")
             self._poblar_catalogos()
             self.refrescar_estado(anunciar_error=False, forzar_sync=True)
@@ -1116,6 +1152,7 @@ class VentanaTrampas(wx.Frame):
             return True
         except ErrorPuente as exc:
             self.cliente = None
+            self._actualizar_boton_conexion()
             self.txt_conexion.SetValue(str(exc))
             if anunciar:
                 mostrar_error(self, str(exc), tr("Error de conexión"))
@@ -1146,6 +1183,7 @@ class VentanaTrampas(wx.Frame):
                 or tr("Sin conexión").lower() in bajo
             ):
                 self.cliente = None
+                self._actualizar_boton_conexion()
                 self.txt_conexion.SetValue(str(exc))
             mostrar_error(self, str(exc), tr("No se pudo aplicar"))
             return None
@@ -1162,6 +1200,7 @@ class VentanaTrampas(wx.Frame):
                 _hablar(tr("Datos y controles sincronizados con el juego."))
         except ErrorPuente as exc:
             self.cliente = None
+            self._actualizar_boton_conexion()
             self.txt_conexion.SetValue(str(exc))
 
     def refrescar_estado(self, anunciar_error: bool = False, forzar_sync: bool = False) -> None:
@@ -1229,6 +1268,7 @@ class VentanaTrampas(wx.Frame):
             self._actualizar_lista_npcs(npcs, forzar=forzar_sync)
         except ErrorPuente as exc:
             self.cliente = None
+            self._actualizar_boton_conexion()
             self.txt_conexion.SetValue(
                 tr("Desconectado ({exc}). En multijugador el puente se anula salvo que el dueño del servidor habilite permitir_trampas.").format(
                     exc=exc

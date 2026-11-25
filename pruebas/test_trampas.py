@@ -384,7 +384,17 @@ def test_ganchos_y_gui_wx_sincronizada(puente_activo):
     hilo.start()
     try:
         assert v.libro.GetPageCount() == 8
+        assert v.btn_conectar.GetLabel() == "&2 Conectar"
         assert v.conectar(False) is True
+        assert v.btn_conectar.GetLabel() == "&2 Desconectar"
+        cli_inicial = v.cliente
+        assert cli_inicial is not None
+        # No debe abrir una segunda conexión si ya está enlazado
+        assert v.conectar(False) is True
+        assert v.cliente is cli_inicial
+        assert "Ya estás conectado" in v.GetStatusBar().GetStatusText()
+        assert v.btn_conectar.GetLabel() == "&2 Desconectar"
+
         assert v.sp_dinero.GetValue() == 7777
         assert v.sp_banco.GetValue() == 12345
         assert v.sp_salud.GetValue() == 82
@@ -393,6 +403,14 @@ def test_ganchos_y_gui_wx_sincronizada(puente_activo):
         assert v.sp_hora.GetValue() == 15
         assert v.sp_dia.GetValue() == 9
         assert v.chk_lluvia.GetValue() is True
+
+        # Alternar botón a desconectar y volver a conectar limpiamente
+        v._alternar_conexion()
+        assert v.cliente is None
+        assert v.btn_conectar.GetLabel() == "&2 Conectar"
+        v._alternar_conexion()
+        assert v.cliente is not None
+        assert v.btn_conectar.GetLabel() == "&2 Desconectar"
     finally:
         parar.set()
         hilo.join(timeout=1.0)
@@ -939,6 +957,40 @@ def test_ventana_trampas_i18n_ingles(monkeypatch):
         v.Close()
         v.Destroy()
         app_wx.ProcessPendingEvents()
+        app_wx.Destroy()
+        monkeypatch.undo()
+        i18n.cargar(previo)
+
+
+def test_ventana_trampas_teclado_todos_idiomas(monkeypatch):
+    try:
+        import wx
+        app_wx = wx.App(False)
+    except Exception as exc:
+        pytest.skip(f"Sin entorno gráfico wx disponible: {exc}")
+
+    from juego import i18n
+    import trampas.ventana as V
+    from editor.accesibilidad import revision_teclado
+
+    previo = i18n.actual()
+    wx.HelpProvider.Set(wx.SimpleHelpProvider())
+    try:
+        for idi in ("es", "en", "pt", "ru", "vi"):
+            monkeypatch.setenv("PUERTOBRAVO_IDIOMA", idi)
+            i18n.cargar(idi)
+            v = V.VentanaTrampas(auto_conectar=False, intervalo_ms=0)
+            try:
+                problemas = revision_teclado.revisar_teclado(v, teclas_propias=["F5"])
+                errores = [p for p in problemas if not p.aviso]
+                assert errores == [], f"[{idi}]\n" + revision_teclado.informe(errores)
+                if idi != "ru":
+                    assert problemas == [], f"[{idi}]\n" + revision_teclado.informe(problemas)
+            finally:
+                v.Close()
+                v.Destroy()
+                app_wx.ProcessPendingEvents()
+    finally:
         app_wx.Destroy()
         monkeypatch.undo()
         i18n.cargar(previo)

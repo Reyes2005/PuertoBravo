@@ -497,5 +497,9 @@
   "{nombre} ({k}, máx {niv})": "{nombre} ({k}, max {niv})",
   "{nombre} {apellido} — Salud {salud}/{salud_max}, Blindaje {blindaje}\nDinero: {dinero} € en mano, {banco} € en banco | Búsqueda: {estrellas} estrellas\nÁnimo {animo}, Prestigio {ciudadania}, Fama {reputacion} | Arma: {arma}\nEntidades vivas: {vehs} vehículos, {pers} personas": "{nombre} {apellido} — Health {salud}/{salud_max}, Armor {blindaje}\nMoney: {dinero} € cash, {banco} € bank | Wanted: {estrellas} stars\nMood {animo}, Prestige {ciudadania}, Street rep {reputacion} | Weapon: {arma}\nActive entities: {vehs} vehicles, {pers} people",
   "Á&mbito:": "Sco&pe:",
-  "Á&nimo (0-100):": "&Mood (0-100):"
+  "Á&nimo (0-100):": "&Mood (0-100):",
+  "&2 Desconectar": "&2 Disconnect",
+  "Cierra la conexión actual con Puerto Bravo.": "Closes the current connection to Puerto Bravo.",
+  "Desconectado. Pulsa Conectar cuando quieras volver a enlazar con Puerto Bravo.": "Disconnected. Press Connect whenever you want to link to Puerto Bravo again.",
+  "Ya estás conectado con Puerto Bravo. Pulsa Desconectar si quieres cerrar la conexión actual.": "You are already connected to Puerto Bravo. Press Disconnect if you want to close the current connection."
 }
