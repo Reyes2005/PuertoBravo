@@ -38,5 +38,16 @@
   "al ": "на ",
   "gira a la derecha": "поверните направо",
   "gira a la izquierda": "поверните налево",
-  "gira hacia el {cardinal} por {via}": "поверните на {cardinal} на {via}"
+  "gira hacia el {cardinal} por {via}": "поверните на {cardinal} на {via}",
+  "Preguntar por un sitio": "Спросить дорогу",
+  "Al {cardinal}: ": "На {cardinal}: ",
+  "Uno por línea, con el nombre interno del tema de la base de conversación: tiempo, futbol, trabajo_duro, dinero, comida... Si lo dejas vacío, valen los de serie.": "По одному в строке, с внутренним названием базовой темы разговора: погода, футбол, тяжелая_работа, деньги, еда... Если оставить это поле пустым, действительны стандартные.",
+  "este": "восток",
+  "acera": "тротуар",
+  "calzada": "проезжая часть",
+  "césped": "трава",
+  "arena": "песок",
+  "plaza": "площадь",
+  "muelle": "пирс",
+  "pared": "стена"
 }
