@@ -994,3 +994,64 @@ def test_ventana_trampas_teclado_todos_idiomas(monkeypatch):
         app_wx.Destroy()
         monkeypatch.undo()
         i18n.cargar(previo)
+
+
+def test_guia_menu_trampas_idiomas_y_enlaces(monkeypatch):
+    import sys
+    from html.parser import HTMLParser
+    from pathlib import Path
+    from juego import i18n, rutas
+
+    raiz = Path(__file__).resolve().parent.parent
+    docs = raiz / "data" / "docs"
+    sys.path.insert(0, str(raiz / "herramientas" / "i18n"))
+    import fugas
+
+    class _Parser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.etiquetas = []
+            self.enlaces = []
+
+        def handle_starttag(self, tag, attrs):
+            self.etiquetas.append(tag)
+            for k, v in attrs:
+                if k == "href":
+                    self.enlaces.append(v)
+
+        def handle_endtag(self, tag):
+            self.etiquetas.append(f"/{tag}")
+
+    parsers = {}
+    for cod in ("es", "en", "pt", "vi"):
+        guia = docs / f"menu_trampas_{cod}.html"
+        assert guia.is_file(), f"Falta {guia}"
+        manual = (docs / f"manual_{cod}.html").read_text(encoding="utf-8")
+        assert f"menu_trampas_{cod}.html" in manual, f"El manual {cod} no enlaza menu_trampas_{cod}.html"
+
+        p = _Parser()
+        texto = guia.read_text(encoding="utf-8")
+        p.feed(texto)
+        parsers[cod] = (p, texto)
+        for href in p.enlaces:
+            if ":" in href or href.startswith("//"):
+                continue
+            archivo = href.split("#", 1)[0]
+            if archivo:
+                assert (docs / archivo).is_file(), (cod, href)
+
+    assert 'lang="pt-BR"' in parsers["pt"][1]
+    assert parsers["en"][0].etiquetas == parsers["pt"][0].etiquetas
+    malas = fugas.fugas(parsers["en"][1], es_html=True)
+    assert malas == [], f"Español colado en menu_trampas_en.html: {malas}"
+
+    previo = i18n.actual()
+    try:
+        for cod, esperado in (("es", "menu_trampas_es.html"), ("en", "menu_trampas_en.html"), ("pt", "menu_trampas_pt.html"), ("vi", "menu_trampas_vi.html"), ("ru", "menu_trampas_en.html")):
+            monkeypatch.setenv("PUERTOBRAVO_IDIOMA", cod)
+            i18n.cargar(cod)
+            assert i18n.doc("menu_trampas").endswith(esperado)
+            assert os.path.exists(rutas.data("docs", esperado))
+    finally:
+        monkeypatch.undo()
+        i18n.cargar(previo)
