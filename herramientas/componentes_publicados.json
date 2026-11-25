@@ -1,7 +1,7 @@
 {
  "idioma-en": {
-  "version": 2,
-  "huella": "13820d2496007218b66e2f42c89189252c40eb07dd1ef4dc72f13d0d2566f54a",
+  "version": 5,
+  "huella": "820b04e42518baff789301cdf96966684b8a23d00ee37e76a87a99fdabd6c1a2",
   "archivos": [
    "data/idiomas/en/palabras.json",
    "data/idiomas/en/textos.json",
@@ -14,8 +14,8 @@
   ]
  },
  "voces-en": {
-  "version": 1,
-  "huella": "d331ae1946cd5830a236798ecbee1baffc3a361b4dc1814421b86d25e7e99e0c",
+  "version": 2,
+  "huella": "b0ac5e9599a5c270bd85020de0c633612a477aed62e3a49f0c750b411754bd2d",
   "archivos": [
    "data/datos/voces_puente/bahia_del_ocaso_en/oc01_1_1.ogg",
    "data/datos/voces_puente/bahia_del_ocaso_en/oc01_1_2.ogg",
@@ -202,6 +202,32 @@
    "data/datos/voces_puente/costa_dorada_en/cdo1_1_2.ogg",
    "data/datos/voces_puente/costa_dorada_en/cdo1_4_1.ogg",
    "data/datos/voces_puente/costa_dorada_en/cdo1_4_2.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_1.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_2.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_2@alex_h.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_2@alex_m.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_2@cris_h.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_2@cris_m.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_2@dani_m.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_2@sam_h.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_2@sam_m.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_3.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_1_4.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_4_1.ogg",
+   "data/datos/voces_puente/el_diablo_en/di01_4_2.ogg",
+   "data/datos/voces_puente/el_diablo_en/di02_1_1.ogg",
+   "data/datos/voces_puente/el_diablo_en/di02_1_2.ogg",
+   "data/datos/voces_puente/el_diablo_en/di02_4_1.ogg",
+   "data/datos/voces_puente/el_diablo_en/di02_4_2.ogg",
+   "data/datos/voces_puente/el_diablo_en/di03_1_1.ogg",
+   "data/datos/voces_puente/el_diablo_en/di03_1_2.ogg",
+   "data/datos/voces_puente/el_diablo_en/di03_5_1.ogg",
+   "data/datos/voces_puente/el_diablo_en/di03_5_2.ogg",
+   "data/datos/voces_puente/el_diablo_en/di04_1_1.ogg",
+   "data/datos/voces_puente/el_diablo_en/di04_1_2.ogg",
+   "data/datos/voces_puente/el_diablo_en/di04_3_1.ogg",
+   "data/datos/voces_puente/el_diablo_en/di04_6_1.ogg",
+   "data/datos/voces_puente/el_diablo_en/di04_6_2.ogg",
    "data/datos/voces_puente/historia_principal_en/a01_1_1.ogg",
    "data/datos/voces_puente/historia_principal_en/a01_1_1@alex.ogg",
    "data/datos/voces_puente/historia_principal_en/a01_1_1@cris.ogg",
@@ -1242,8 +1268,8 @@
   ]
  },
  "voces-es": {
-  "version": 1,
-  "huella": "8dcb7ef619a2b41f398318bab309d1abb04e9f6a34f56d41e2129608aee5d5eb",
+  "version": 2,
+  "huella": "c6d1da920ccee11d5e507fba35520c09134a8fdeeb506b3f7caa7d48af6380b7",
   "archivos": [
    "data/datos/voces_puente/bahia_del_ocaso_es/oc01_1_1.ogg",
    "data/datos/voces_puente/bahia_del_ocaso_es/oc01_1_2.ogg",
@@ -1436,6 +1462,32 @@
    "data/datos/voces_puente/costa_dorada_es/cdo1_1_2.ogg",
    "data/datos/voces_puente/costa_dorada_es/cdo1_4_1.ogg",
    "data/datos/voces_puente/costa_dorada_es/cdo1_4_2.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_1.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_2.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_2@alex_h.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_2@alex_m.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_2@cris_h.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_2@cris_m.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_2@dani_m.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_2@sam_h.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_2@sam_m.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_3.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_1_4.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_4_1.ogg",
+   "data/datos/voces_puente/el_diablo_es/di01_4_2.ogg",
+   "data/datos/voces_puente/el_diablo_es/di02_1_1.ogg",
+   "data/datos/voces_puente/el_diablo_es/di02_1_2.ogg",
+   "data/datos/voces_puente/el_diablo_es/di02_4_1.ogg",
+   "data/datos/voces_puente/el_diablo_es/di02_4_2.ogg",
+   "data/datos/voces_puente/el_diablo_es/di03_1_1.ogg",
+   "data/datos/voces_puente/el_diablo_es/di03_1_2.ogg",
+   "data/datos/voces_puente/el_diablo_es/di03_5_1.ogg",
+   "data/datos/voces_puente/el_diablo_es/di03_5_2.ogg",
+   "data/datos/voces_puente/el_diablo_es/di04_1_1.ogg",
+   "data/datos/voces_puente/el_diablo_es/di04_1_2.ogg",
+   "data/datos/voces_puente/el_diablo_es/di04_3_1.ogg",
+   "data/datos/voces_puente/el_diablo_es/di04_6_1.ogg",
+   "data/datos/voces_puente/el_diablo_es/di04_6_2.ogg",
    "data/datos/voces_puente/historia_principal_es/a01_1_1.ogg",
    "data/datos/voces_puente/historia_principal_es/a01_1_1@alex.ogg",
    "data/datos/voces_puente/historia_principal_es/a01_1_1@cris.ogg",
@@ -2481,8 +2533,8 @@
   ]
  },
  "docs-es": {
-  "version": 2,
-  "huella": "f34f4aafcf691f2c60058e145e6231c485058327e14750607c6dce0d647bdba1",
+  "version": 5,
+  "huella": "aef3c5e29bcc7117b85c865f554fc472bc59cdc15175e7299660d89c1cf96f37",
   "archivos": [
    "data/docs/cambiar_sonidos_es.html",
    "data/docs/editor_mods_es.html",
@@ -2493,8 +2545,8 @@
   ]
  },
  "sonidos-alternativo": {
-  "version": 2,
-  "huella": "c9e81fd80cc47b370c817d67f363510e495c7518a152d46fcf90f779d5cba249",
+  "version": 4,
+  "huella": "5cc180bb4a3e1e7841e83d77efd8e3c8f540c64ade998a94a14f15fa4ab63549",
   "archivos": [
    "data/sonidos/alternativo/CREDITOS.txt",
    "data/sonidos/alternativo/abstinencia.flac",
@@ -2783,8 +2835,8 @@
   ]
  },
  "sonidos-envolvente": {
-  "version": 2,
-  "huella": "44c24045eef2f20fac05c34f0ac544d87172d4e56f547302b5f18013f3336556",
+  "version": 4,
+  "huella": "0cb57d8ab54fb5cd9f491cf17c1d26f3cc811ed07d2f9c3204b6c450179af43f",
   "archivos": [
    "data/sonidos/envolvente/CREDITOS.txt",
    "data/sonidos/envolvente/abstinencia.flac",
@@ -3073,8 +3125,8 @@
   ]
  },
  "sonidos-realista": {
-  "version": 2,
-  "huella": "2df81989fa13a219ed2a8f784ac6f36cb33c8fa80577d1cf7fa76fd5e77f16c1",
+  "version": 4,
+  "huella": "edab8f2bb930a4b6b80d615ed9867673f63da541a8b5b8310174120199ab20fd",
   "archivos": [
    "data/sonidos/realista/CREDITOS.txt",
    "data/sonidos/realista/abstinencia.flac",
@@ -3363,8 +3415,8 @@
   ]
  },
  "sonidos-retro": {
-  "version": 2,
-  "huella": "0877adc6264b2f1e76ba0d7bb1152afc704510ad97f04710fd8565bc966c43a4",
+  "version": 4,
+  "huella": "99106616641f7308d916e905a738dd2a5ed5420f9bf31904be07ac56bc8602ee",
   "archivos": [
    "data/sonidos/retro/CREDITOS.txt",
    "data/sonidos/retro/abstinencia.flac",
@@ -3653,57 +3705,57 @@
   ]
  },
  "mod-bahia_del_ocaso": {
-  "version": 2,
-  "huella": "38ae5c7e1a22b11505fcb38c41f96910eecbf8baf1a6c35648632ce823664673",
+  "version": 4,
+  "huella": "8e22f444cac08838d5d719ed829ea00f367c1c36ef6b680fc878ddf7760b91f5",
   "archivos": [
    "data/mods/bahia_del_ocaso.pbm"
   ]
  },
  "mod-costa_dorada": {
-  "version": 2,
-  "huella": "3bf9e91773f4cd396faa2dfca68e168ff017e7a01e1bbdec59a401e3d1a894c0",
+  "version": 4,
+  "huella": "70249a79cea0c4e2d816a86407b5f71f1c2369e7c2ba3baeda7e8ad840396fbf",
   "archivos": [
    "data/mods/costa_dorada.pbm"
   ]
  },
  "mod-isla_de_los_vientos": {
-  "version": 2,
-  "huella": "72e70d36bf430b70d9e0803e3829dd48ffa707b6a211bba8d4770a36f828cb84",
+  "version": 4,
+  "huella": "4c2adb8adc583eb3a782f651a7bd648763cfcb8ec3d2d84899630bb061643ab0",
   "archivos": [
    "data/mods/isla_de_los_vientos.pbm"
   ]
  },
  "mod-motor_y_asfalto": {
-  "version": 2,
-  "huella": "5ad0b74e40b9a605992158578b10bc1f98974006ec3c7025dba2faaaa8235785",
+  "version": 4,
+  "huella": "7952c74ed55b344150a33132754057fde3ec2812db6a101cec4c18e58f9184c2",
   "archivos": [
    "data/mods/motor_y_asfalto.pbm"
   ]
  },
  "mod-noches_de_neon": {
-  "version": 2,
-  "huella": "937c2b9c0b5d1a5bd7be27122368b82057bfe20cc90698fdd982a5169f059dbe",
+  "version": 4,
+  "huella": "f090178a46c9a9bce7a08a75dd153f94ed52a44e98fc1368d3f92eade0fed88f",
   "archivos": [
    "data/mods/noches_de_neon.pbm"
   ]
  },
  "mod-oficios_y_recados": {
-  "version": 2,
-  "huella": "fa7cd6c0d5e12f5b9a953811b29fe75ac862ef997a6d8cb6a08bdbc807ac7e90",
+  "version": 4,
+  "huella": "23be4bc5250f30a1f00b40b13b866bb0cc28ce079f82bc679eefadb6a1f49e63",
   "archivos": [
    "data/mods/oficios_y_recados.pbm"
   ]
  },
  "mod-penas_altas": {
-  "version": 2,
-  "huella": "80431b446f852c745f1e513630d16566280119aa4a1d6cd2f65638a260b8beda",
+  "version": 4,
+  "huella": "533ae256fd83ef42cf3e5271c3981cfb6292587638023357130c2d43df78ea45",
   "archivos": [
    "data/mods/penas_altas.pbm"
   ]
  },
  "mod-valdeolmos": {
-  "version": 2,
-  "huella": "a722c861fd1e5f0602e1837f11b4d8e6f68c8af914667f8bb52730a41103016e",
+  "version": 4,
+  "huella": "e304ae9204895aec71ea5ec11ad9870bb4cac73e8e8a57904e1ba8a215ad43cd",
   "archivos": [
    "data/mods/valdeolmos.pbm"
   ]
@@ -3983,8 +4035,8 @@
   ]
  },
  "idioma-vi": {
-  "version": 4,
-  "huella": "4f015c171655342e6cf2db83fd028cffba8e8843d50150a39abc4850093da8df",
+  "version": 5,
+  "huella": "180362ed1b2b19b62a83597bd8250cc2f700ead15fbd8840a66a057503ed17c6",
   "archivos": [
    "data/idiomas/vi/idioma.json",
    "data/idiomas/vi/palabras.json",
@@ -4287,8 +4339,8 @@
   ]
  },
  "idioma-pt": {
-  "version": 3,
-  "huella": "fa7787675a43a70ce942b7db734bf737a3ab39446c72ea3a7263d0be9b98c209",
+  "version": 5,
+  "huella": "0020b9116241b8997fcef777eac71abed782c7bd4c48bfdd7b7299ef12928c28",
   "archivos": [
    "data/idiomas/pt/idioma.json",
    "data/idiomas/pt/palabras.json",
@@ -4301,71 +4353,15 @@
   ]
  },
  "mod-el_diablo": {
-  "version": 2,
-  "huella": "73e3578239a6c78dfeb27318905c097774b6c53b3bec88d2e5801f4a7892e4fb",
+  "version": 3,
+  "huella": "de135bb4649942d7cf9a407aedfba9707d31571589be3619eca715d728c9434a",
   "archivos": [
-   "data/mods/el_diablo.pbm",
-   "data/idiomas/en/mods/el_diablo.json",
-   "data/idiomas/vi/mods/el_diablo.json",
-   "data/idiomas/pt/mods/el_diablo.json",
-   "data/idiomas/ru/mods/el_diablo.json",
-   "data/voces/el_diablo_es/di01_1_1.ogg",
-   "data/voces/el_diablo_es/di01_1_2.ogg",
-   "data/voces/el_diablo_es/di01_1_2@alex_h.ogg",
-   "data/voces/el_diablo_es/di01_1_2@alex_m.ogg",
-   "data/voces/el_diablo_es/di01_1_2@cris_h.ogg",
-   "data/voces/el_diablo_es/di01_1_2@cris_m.ogg",
-   "data/voces/el_diablo_es/di01_1_2@dani_m.ogg",
-   "data/voces/el_diablo_es/di01_1_2@sam_h.ogg",
-   "data/voces/el_diablo_es/di01_1_2@sam_m.ogg",
-   "data/voces/el_diablo_es/di01_1_3.ogg",
-   "data/voces/el_diablo_es/di01_1_4.ogg",
-   "data/voces/el_diablo_es/di01_4_1.ogg",
-   "data/voces/el_diablo_es/di01_4_2.ogg",
-   "data/voces/el_diablo_es/di02_1_1.ogg",
-   "data/voces/el_diablo_es/di02_1_2.ogg",
-   "data/voces/el_diablo_es/di02_4_1.ogg",
-   "data/voces/el_diablo_es/di02_4_2.ogg",
-   "data/voces/el_diablo_es/di03_1_1.ogg",
-   "data/voces/el_diablo_es/di03_1_2.ogg",
-   "data/voces/el_diablo_es/di03_5_1.ogg",
-   "data/voces/el_diablo_es/di03_5_2.ogg",
-   "data/voces/el_diablo_es/di04_1_1.ogg",
-   "data/voces/el_diablo_es/di04_1_2.ogg",
-   "data/voces/el_diablo_es/di04_3_1.ogg",
-   "data/voces/el_diablo_es/di04_6_1.ogg",
-   "data/voces/el_diablo_es/di04_6_2.ogg",
-   "data/voces/el_diablo_en/di01_1_1.ogg",
-   "data/voces/el_diablo_en/di01_1_2.ogg",
-   "data/voces/el_diablo_en/di01_1_2@alex_h.ogg",
-   "data/voces/el_diablo_en/di01_1_2@alex_m.ogg",
-   "data/voces/el_diablo_en/di01_1_2@cris_h.ogg",
-   "data/voces/el_diablo_en/di01_1_2@cris_m.ogg",
-   "data/voces/el_diablo_en/di01_1_2@dani_m.ogg",
-   "data/voces/el_diablo_en/di01_1_2@sam_h.ogg",
-   "data/voces/el_diablo_en/di01_1_2@sam_m.ogg",
-   "data/voces/el_diablo_en/di01_1_3.ogg",
-   "data/voces/el_diablo_en/di01_1_4.ogg",
-   "data/voces/el_diablo_en/di01_4_1.ogg",
-   "data/voces/el_diablo_en/di01_4_2.ogg",
-   "data/voces/el_diablo_en/di02_1_1.ogg",
-   "data/voces/el_diablo_en/di02_1_2.ogg",
-   "data/voces/el_diablo_en/di02_4_1.ogg",
-   "data/voces/el_diablo_en/di02_4_2.ogg",
-   "data/voces/el_diablo_en/di03_1_1.ogg",
-   "data/voces/el_diablo_en/di03_1_2.ogg",
-   "data/voces/el_diablo_en/di03_5_1.ogg",
-   "data/voces/el_diablo_en/di03_5_2.ogg",
-   "data/voces/el_diablo_en/di04_1_1.ogg",
-   "data/voces/el_diablo_en/di04_1_2.ogg",
-   "data/voces/el_diablo_en/di04_3_1.ogg",
-   "data/voces/el_diablo_en/di04_6_1.ogg",
-   "data/voces/el_diablo_en/di04_6_2.ogg"
+   "data/mods/el_diablo.pbm"
   ]
  },
  "idioma-ru": {
-  "version": 2,
-  "huella": "a7c2427940f5f7264dc6d090fecf3190c8fc88ea2a7e20697c0adebfa6ed24eb",
+  "version": 5,
+  "huella": "006d1acc0dd0ec904a27a1caf72b89215404bc7a7d28009b53e8aa96bf9ce09e",
   "archivos": [
    "data/idiomas/ru/idioma.json",
    "data/idiomas/ru/palabras.json",

@@ -175,8 +175,8 @@ def test_el_mod_extra_y_su_paquete_incluyen_portugues():
 
 
 def test_el_glosario_auxiliar_tambien_esta_completo():
-    en = _leer("data/idiomas/en/palabras.json")
-    pt = _leer("data/idiomas/pt/palabras.json")
+    en = {k: v for k, v in _leer("data/idiomas/en/palabras.json").items() if not k.startswith("_")}     # "_del_idioma": las del inglés
+    pt = {k: v for k, v in _leer("data/idiomas/pt/palabras.json").items() if not k.startswith("_")}
     assert set(en) == set(pt)
     assert all(isinstance(t, str) and t.strip() for t in pt.values())
     assert pt["cargador"] == "carregador" and pt["derecha"] == "direita"

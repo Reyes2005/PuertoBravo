@@ -633,12 +633,10 @@ class Conduccion:
         estilo = self.estilo_piloto()
         salta = bool(self.sirena_propia) or bool(self.mision and self.mision.get("limite") is not None) or estilo in ("mucha_prisa", "temerario")
         prisa = salta or bool(self.trabajo and self.trabajo.get("limite") is not None) or estilo == "prisa"
-        # lo que da de verdad el vehículo: con sus mejoras de motor y tu habilidad, como cuando conduces tú (ver conducir)
+        # lo que da de verdad el vehículo: con sus mejoras, sus averías, su estado y tu habilidad, lo mismo que cuando conduces tú
         from . import sistemas
-        tope = mo["vel_max"] * sistemas.factor_velocidad(v) * (1 + 0.01 * self.nivel("conduccion"))
-        if estilo == "mucha_prisa":
-            objetivo = tope * 0.95
-        elif estilo == "temerario":                              # al cien por cien, y sin la frenada automática (ver conducir)
+        tope = self.velocidad_maxima(v)
+        if estilo in ("mucha_prisa", "temerario"):               # a toda velocidad; el temerario, además, sin la frenada automática (ver conducir)
             objetivo = tope
         else:
             objetivo = min(mo["vel_max"] * 0.85, 21.0) if prisa else min(mo["vel_max"] * 0.6, 14.0)
@@ -690,9 +688,16 @@ class Conduccion:
                 self.t_aviso_rojo = self.t
                 self.decir(tr('Semáforo en rojo. {quien} espera.').format(quien=(quien)))
         if v.vel < objetivo:
-            v.vel = min(objetivo, v.vel + mo["acel"] * 0.8 * dt)
+            v.vel = min(objetivo, v.vel + mo["acel"] * sistemas.factor_aceleracion(v) * 0.8 * dt)     # el motor mejorado también acelera más
         elif v.vel > objetivo:
             v.vel = max(objetivo, v.vel - freno * dt)
+
+    def velocidad_maxima(self, v):
+        """Lo más que puede ir este vehículo ahora: el modelo, sus mejoras de motor, sus averías, cómo está y tu habilidad.
+        Es el tope al conducir tú y el objetivo del piloto cuando va a toda velocidad."""
+        from . import sistemas
+        return (v.modelo["vel_max"] * self.factor_averia_velocidad(v) * sistemas.factor_velocidad(v)
+                * (0.55 + 0.45 * min(1.0, v.salud / (0.5 * v.salud_max))) * (1 + 0.01 * self.nivel("conduccion")))
 
     # --------------------------------------------------------- conducir
     def conducir(self, dt):
@@ -738,8 +743,7 @@ class Conduccion:
                 self.t_frenazo = self.t
                 self.son("frenazo", vol=0.5)
             v.vel -= math.copysign(min(abs(v.vel), freno * 1.7 * dt), v.vel)
-        vmax = mo["vel_max"] * self.factor_averia_velocidad(v) * sistemas.factor_velocidad(v) * (0.55 + 0.45 * min(1.0, v.salud / (0.5 * v.salud_max))) * (1 + 0.01 * self.nivel("conduccion"))
-        v.vel = min(v.vel, vmax)
+        v.vel = min(v.vel, self.velocidad_maxima(v))
         x0, y0 = v.x, v.y
         if self.modo_asistido():
             lat = -6.0 if pygame.K_a in t else 2.2 if pygame.K_d in t else 0.0
@@ -948,7 +952,7 @@ class Conduccion:
                 if o.ia == "trafico":
                     self.son(o.modelo.get("claxon", "claxon"), xy=(o.x, o.y))
                 if o.ia == "policia":
-                    self.delito(1, None, siempre=True)
+                    self.delito(1, tr("chocar contra un coche patrulla"), siempre=True)
                 return
         if abs(v.vel) > 3:
             for p in self.personas:

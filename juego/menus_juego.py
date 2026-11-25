@@ -296,6 +296,8 @@ def principal(app):
             Opcion(tr("Ayuda: lista de teclas"), lambda: ayuda_teclas(app, "todo"),
                    ayuda=tr("Todas las teclas del juego, a pie, al volante y en cualquier momento, y los botones del mando. Si has cambiado alguna tecla, dice la tuya.")),
             Opcion(tr("Abrir el manual"), lambda: abrir_manual(app), ayuda=tr("Abre el manual completo del juego en tu navegador. El juego sigue abierto detrás.")),
+            Opcion(tr("Comunidad de jugadores, no oficial"), lambda: __import__("juego.comunidad", fromlist=["x"]).menu(app),
+                   ayuda=tr("Grupos de mensajería, foros, servidores y otros sitios que crean y llevan los propios jugadores. No es oficial: el autor solo les da visibilidad.")),
             Opcion(tr("Acerca de"), lambda: acerca(app), ayuda=tr("La versión que tienes, quién ha hecho el juego, dónde avisar de un fallo y cómo invitarle a un café.")),
             Opcion(tr("Salir"), app.salir, ayuda=tr("Cierra el juego.")),
         ]
@@ -814,6 +816,14 @@ def opciones(app):
                    ayuda=tr("El motor envolvente usa sonido binaural: con auriculares se distingue si algo suena delante o detrás, y no solo a izquierda o derecha. "
                          "Además mezcla el sonido fuera del programa, así que no da tirones cuando hay muchos sonidos a la vez. El clásico es el de siempre. "
                          "El cambio se aplica al cerrar y volver a abrir el juego. En ordenadores con procesador antiguo, y con el sonido mono activado, se usa siempre el clásico.")),
+            Opcion(lambda: _salida_txt(app), ajuste=lambda d: _cambiar_salida(app, "salida_sonido", d),
+                   ayuda=tr("Por dónde suena el juego. De serie, la salida de Windows: si conectas o quitas los auriculares, o cambias la salida en Windows, el juego se va con ella, "
+                         "y si se corta, vuelve a sonar solo en cuanto hay otra. También puedes elegir una con las flechas izquierda y derecha: el cambio es al momento, y suena una muestra "
+                         "por la nueva. Si la elegida se desconecta, el juego suena por la de Windows hasta que vuelva. La voz de tu lector de pantalla sale por donde la tenga puesta él.")),
+            Opcion(lambda: _salida_extra_txt(app), ajuste=lambda d: _cambiar_salida(app, "salida_extra", d),
+                   ayuda=tr("Además de la salida de arriba, el mismo sonido del juego por otra a la vez: por ejemplo un cable de audio virtual que recoja un programa de grabación "
+                         "o de retransmisión, o unos segundos auriculares. Para grabar o emitir sin cambiar por dónde lo oyes tú. Solo con el motor clásico: con el envolvente, "
+                         "los programas como OBS pueden recoger el sonido del juego directamente, con la captura de audio de una aplicación.")),
             Opcion(lambda: tr('Sonido holgado, para equipos donde el audio da chasquidos o cortes: {v}').format(v=(tr('sí') if cfg['sonido_holgado'] else tr('no'))) +
                    (tr(". Se aplicará al volver a abrir el juego") if bool(cfg["sonido_holgado"]) != bool(getattr(app.mez, "holgado", False)) and not getattr(app.mez, "envolvente", False) else ""),
                    ajuste=lambda d: cfg.__setitem__("sonido_holgado", not cfg["sonido_holgado"]),
@@ -951,6 +961,10 @@ def opciones(app):
             si_no("soltar_municion", tr("Los enemigos caídos sueltan munición"),
                   tr("Con sí, un enemigo que llevaba un arma de fuego igual que una de las tuyas deja a veces en el suelo munición de esa arma. Se recoge sola al pasar a pie por encima, como el dinero, "
                   "y se oye un cargador. Con no, solo sueltan dinero, como antes.")),
+            si_no("recoger_al_pasar", tr("Recoger al pasar por encima lo que hay en el suelo"),
+                  tr("Con sí, que es como viene, el dinero, la munición, las armas y los objetos de valor que sueltan los enemigos se recogen solos al pasar a pie por encima. "
+                  "Con no, se recogen con Intro al lado, y nada se te mete en la mochila sin querer. Lo que suelta alguien que te ha atacado cuenta como robado: "
+                  "en la casa de empeños dan menos por ello, y si te detienen, te lo quitan; al recogerlo, el juego lo dice.")),
             si_no("soltar_armas", tr("Dificultad: los enemigos caídos sueltan a veces su arma"),
                   tr("Con sí, un enemigo caído deja a veces en el suelo el arma que llevaba, si tú no la tienes: te la quedas al pasar por encima. Hace el juego más fácil y la armería menos necesaria, "
                   "por eso viene apagada. En un servidor en línea no cuenta.")),
@@ -1154,6 +1168,39 @@ GRUPOS += [(tr("Viajes: carreteras, autobuses y embarcaderos"), ("salida", "esta
            (tr("Bancos, gimnasios, cines y otros servicios"), ("banco", "gimnasio", "cine", "hotel", "ropa", "loteria", "empenos", "concesionario", "pescaderia", "taberna", "pesca"))]
 
 
+def _salida_txt(app):
+    from . import salidas
+    elegida = app.cfg["salida_sonido"]
+    if not elegida:
+        ahora = salidas.por_defecto()
+        return tr('Salida de sonido: la de Windows{v}').format(v=(tr(', ahora {nombre}').format(nombre=ahora) if ahora else ""))
+    if not salidas.presente(elegida):
+        return tr('Salida de sonido: {nombre}, desconectada: suena por la de Windows hasta que vuelva').format(nombre=elegida)
+    return tr('Salida de sonido: {nombre}').format(nombre=elegida)
+
+
+def _salida_extra_txt(app):
+    extra = app.cfg["salida_extra"]
+    t = tr('Segunda salida, para grabar o retransmitir: {nombre}').format(nombre=(extra or tr("ninguna")))
+    if extra and getattr(app.mez, "envolvente", False):
+        t += tr(". Solo funciona con el motor clásico")
+    return t
+
+
+def _cambiar_salida(app, clave, d):
+    """Pasa a la salida siguiente o a la anterior y la pone al momento: la elegida, la de Windows o, la segunda, ninguna."""
+    from . import salidas
+    lista = [""] + [n for n in salidas.disponibles() if clave == "salida_sonido" or not salidas.coincide(n, app.cfg["salida_sonido"] or salidas.por_defecto())]
+    actual = app.cfg[clave]
+    i = next((k for k, n in enumerate(lista) if n and salidas.coincide(actual, n)), 0)
+    app.cfg[clave] = lista[(i + d) % len(lista)]
+    try:
+        app.mez.poner_salida(app.cfg["salida_sonido"], extra=app.cfg["salida_extra"])
+    except Exception:
+        pass
+    app.son("menu_ok")                                   # la muestra, ya por la salida nueva
+
+
 def lista_lugares(p, al_elegir=None, titulo=None, mapa=None, otras=True):
     app = p.app
     mundo = mapa or p.mundo
@@ -1266,9 +1313,10 @@ def movil(p):
                     continue
                 l = p.lugares[m["lugar"]]
 
-                def ir(l=l):
+                def ir(l=l, m=m):
                     app.cerrar(mm)
                     app.cerrar(menu)
+                    p.mision_marcada = m["id"]               # si en ese sitio empiezan varias, Intro empieza esta
                     p.gps_a_lugar(l)
                 donde = p.situar(l.x, l.y, l.nombre) if l.mapa == p.mundo.id else p.nombre_lugar(l)
                 if m.get("explicacion"):                         # no es una misión: se lee aquí mismo
@@ -1583,6 +1631,9 @@ def lugar(p, l):
     if f is None:
         app.decir(f"{l.nombre}. {l.desc}", True)
         return
+    if p.acompanante and l.tipo == "casa":                   # llegar juntos a casa: antes de que te reciba nadie (issue 29)
+        from . import sistemas
+        sistemas.visita_con_acompanante(p, l)
     if not en_coche and l.tipo not in ("salida", "muelle", "embarcadero", "estacion", "pesca", "tesoro", "helipuerto", "carrera", "taxi", "tranvia", "tren", "aeropuerto"):
         p.entrar_interior(l)
     f(p, l)
@@ -1600,6 +1651,8 @@ def lugar(p, l):
     if p.acompanante:
         from . import sistemas
         sistemas.visita_con_acompanante(p, l)
+        if p.acompanante and not en_coche and app.pila and isinstance(app.pila[-1], Menu) and app.pila[-1] is not p:
+            sistemas.con_acompanante_en_local(p, l, app.pila[-1], Opcion)       # invitarle a algo o regalarle un décimo
     if l.tipo in ("bar", "taberna") and not en_coche and app.pila and isinstance(app.pila[-1], Menu) and app.pila[-1] is not p:
         from . import sistemas
         sistemas.con_cartas(p, app.pila[-1], Menu, Opcion)

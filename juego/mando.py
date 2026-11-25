@@ -484,6 +484,9 @@ class Mando:
                 return
             if accion == "claxon" and p.j.veh and p.j.veh.modelo.get("sirena"):
                 accion = "especial"
+            if accion == "recargar" and hasattr(p, "recargar"):     # al volante la R es la radio: el botón recarga de verdad
+                p.recargar()
+                return
         _, key, mod, _ = ACCIONES[accion]
         if key is not None:
             self.app.evento_tecla(_Ev(key, mod))

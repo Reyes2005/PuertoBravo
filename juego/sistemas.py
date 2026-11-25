@@ -454,7 +454,8 @@ class Interior:
     pared = tr("Pared. No hay más casa por ahí.")
 
     def ayuda(self):
-        return tr("Estás dentro de tu casa. Flechas izquierda y derecha para ir de una habitación a otra, Intro para usar la habitación en la que estás y Escape para salir.")
+        return tr("Estás dentro de tu casa. Flechas izquierda y derecha para ir de una habitación a otra, Intro para usar la habitación en la que estás y Escape para salir. "
+                  "Sin salir, la M abre el móvil, la V dice cómo estás y la T la hora.")
 
     def __init__(self, p, lugar, acciones):
         self.p, self.app, self.l, self.acciones = p, p.app, lugar, acciones
@@ -500,6 +501,18 @@ class Interior:
             self.app.cerrar(self)
         elif k == pygame.K_F1:
             self.app.decir(self.ayuda(), True)
+        elif k == pygame.K_m:                           # sin salir de casa: el móvil, cómo estás y la hora (issue 29)
+            from . import menus_juego
+            self.app.son("movil")
+            menus_juego.movil(self.p)
+        elif k == pygame.K_v:
+            if getattr(ev, "mod", 0) & pygame.KMOD_SHIFT:
+                self.app.decir(self.p.necesidades_txt().strip() or tr("La vida realista está desactivada: no pasas hambre, sed ni sueño. Se activa en Opciones, Combate y dificultad."), True)
+            else:
+                self.p.estado()
+        elif k == pygame.K_t:
+            p = self.p
+            self.app.decir(tr("Son las {hora}, {fecha}. {cielo} {dia_txt}").format(hora=p.hora_txt(), fecha=p.fecha_txt(), cielo=tr('Llueve.') if p.lluvia else tr('Cielo despejado.'), dia_txt=p.dia_txt()).strip(), True)
         else:
             self._decir()
 
@@ -1066,7 +1079,54 @@ def paso_acompanante(p, dt):
         a["puntos"] -= 3
         p.decir(tr('{nombre} se asusta con la policía detrás. No era el plan.').format(nombre=(a['nombre'])))
     if p.dia * 1440 + p.reloj > a["hasta"]:
+        if j.veh is not None and abs(j.veh.vel) > 1.0:          # nadie se baja de un coche en marcha: espera a que pares
+            if not a.get("aviso_tarde"):
+                a["aviso_tarde"] = True
+                p.decir(tr('{nombre}: Se me está haciendo tarde. En cuanto pares, me bajo.').format(nombre=(a['nombre'])))
+            return
         terminar_paseo(p, tr("Se ha hecho tarde."))
+
+
+def con_acompanante_en_local(p, lugar, menu, Opcion):
+    """Con tu acompañante en un local: invitarle a tomar algo o, en la administración de lotería, regalarle un décimo.
+    Cada cosa, una vez por paseo, y le gusta (issue 29)."""
+    a = p.acompanante
+    if not a:
+        return
+    if lugar.tipo in ("comida", "pizzeria", "bar", "taberna", "heladeria"):
+        clave, precio = "invitado", p.precio("invitar_acompanante", 12)
+        texto = tr('Invitar a {nombre} a tomar algo: {precio} euros').format(nombre=a["nombre"], precio=precio)
+        ayuda = tr("Pides algo para tu acompañante. Le gusta el detalle y suma al paseo. Una vez por paseo.")
+        hecho = tr('{nombre} elige algo de la carta y brindáis. Le ha gustado el detalle.')
+    elif lugar.tipo == "loteria":
+        clave, precio = "decimo", p.precio("regalo_decimo", 20)
+        texto = tr('Regalarle un décimo a {nombre}: {precio} euros').format(nombre=a["nombre"], precio=precio)
+        ayuda = tr("Un décimo para tu acompañante, como regalo: si toca, es suyo. Le hace ilusión y suma al paseo. Una vez por paseo.")
+        hecho = tr('{nombre} guarda el décimo en la cartera y te dice que, si toca, os vais de viaje.')
+    else:
+        return
+
+    def hacer():
+        if clave in a.get("detalles", []):
+            p.app.decir(tr("Ya has tenido ese detalle en este paseo."), True)
+            return
+        if not p.pagar(precio):
+            return
+        a.setdefault("detalles", []).append(clave)
+        a["puntos"] += 2
+        p.cambiar_animo(1)
+        p.son("trato", cat="interfaz")
+        p.app.decir(hecho.format(nombre=a["nombre"]), True)
+    pos = max(0, len(menu.opciones) - 1)
+    menu.opciones.insert(pos, Opcion(texto, hacer, ayuda=ayuda))
+    fuente = menu._fuente                                        # que siga ahí si el menú se refresca
+
+    def ops():
+        lista = list(fuente() if callable(fuente) else fuente)
+        if not any(o.texto == texto for o in lista):
+            lista.insert(max(0, len(lista) - 1), Opcion(texto, hacer, ayuda=ayuda))
+        return lista
+    menu._fuente = ops
 
 
 def visita_con_acompanante(p, lugar):
@@ -1085,6 +1145,12 @@ def visita_con_acompanante(p, lugar):
             if encuentros.vivir_cita(p, pers, act, lugar):
                 a["puntos"] += 2
             return
+    if lugar.tipo == "casa" and lugar.id in p.j.propiedades and (a["puntos"] or a["metros"] > 60):
+        # a casa juntos: si vivís aquí, el paseo termina dentro; si no, se despide en la puerta (issue 29)
+        vive = getattr(p.j, "convive", None) == a["pid"] and getattr(p.j, "convive_casa", None) == lugar.id
+        p._llegais_juntos = a["pid"] if vive else None
+        terminar_paseo(p, tr("Llegáis juntos a casa.") if vive else tr('{nombre} te acompaña hasta la puerta de casa.').format(nombre=(a['nombre'])))
+        return
     if lugar.id == a["lugar"] and (a["puntos"] or a["metros"] > 60):
         terminar_paseo(p, tr('Dejas a {nombre} donde estaba.').format(nombre=(a['nombre'])))
         return

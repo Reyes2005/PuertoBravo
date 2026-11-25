@@ -1,0 +1,50 @@
+{
+  "_nota": "La sección Comunidad de jugadores del menú principal: grupos, foros, servidores y otros recursos que crean y llevan los propios jugadores. No es oficial. Para apuntar uno, la issue 25 de GitHub. Cada cambio sube «revision» y se publica con herramientas/publicar_comunidad.py: así le llega al juego sin esperar a una versión nueva.",
+  "revision": 2,
+  "titulo": "Comunidad de jugadores, sección no oficial",
+  "aviso": "Esta sección no es oficial. Aquí están los grupos, foros, servidores y otros sitios que han creado los propios jugadores. Los crean, los llevan y los moderan ellos.",
+  "responsabilidad": "El autor del juego no se hace responsable del contenido que se comparte en estos sitios ni de lo que pase en ellos. Todo lo que hay aquí lo gestionan los usuarios y no tiene que ver con el proyecto. El autor solo da visibilidad a los recursos que crean los jugadores.",
+  "apuntar": "Si has creado un grupo, un canal, un foro, un servidor o cualquier otro sitio para los jugadores y quieres que salga aquí, avísalo en la issue 25 del proyecto en GitHub. Intro la abre en el navegador.",
+  "apuntar_url": "https://github.com/hxebolax/PuertoBravo/issues/25",
+  "secciones": [
+    {
+      "id": "comunicacion",
+      "nombre": "Comunicación: grupos y canales de mensajería",
+      "ayuda": "Grupos de Telegram y de otras aplicaciones de mensajería para hablar con otros jugadores. Cada uno dice en qué idioma se habla.",
+      "enlaces": [
+        {"nombre": "Grupo de Telegram", "idioma": "inglés", "url": "https://t.me/+amMChkPULHM1MWFk",
+         "desc": "Para jugadores que hablan inglés. Lo ha creado un jugador."},
+        {"nombre": "Grupo de Telegram", "idioma": "español", "url": "https://t.me/+ftYu8S91jOk4MTAx",
+         "desc": "Para jugadores que hablan español, con unas reglas básicas y un bot que lo modera contra el correo basura. Lo ha creado un jugador."}
+      ]
+    },
+    {
+      "id": "foros",
+      "nombre": "Foros",
+      "ayuda": "Hilos de foros donde se habla del juego.",
+      "enlaces": [
+        {"nombre": "Hilo del juego en el foro de la Sala de Juegos", "idioma": "español", "url": "https://qcsalon.net/es/forum32/topic150832",
+         "desc": "El hilo donde el autor anuncia cada versión y donde los jugadores cuentan lo que encuentran. El foro es de la Sala de Juegos, no del proyecto."},
+        {"nombre": "Hilo del juego en el foro de AudioGames.net", "idioma": "inglés", "url": "https://forum.audiogames.net/topic/61034/puerto-bravo-a-spanish-open-world-audiogame-similar-to-gta/",
+         "desc": "Un hilo que abrió un jugador en el foro internacional de audiojuegos."}
+      ]
+    },
+    {
+      "id": "servidores",
+      "nombre": "Servidores para jugar en línea",
+      "ayuda": "Servidores que mantienen los propios jugadores. Intro sobre uno lo añade a tu lista de Jugar en un servidor, en el menú principal.",
+      "enlaces": [
+        {"nombre": "godeano.vip", "idioma": "español", "servidor": "puertobravo://godeano.vip:47820",
+         "desc": "Un servidor que lleva un jugador. Sus normas las pone quien lo lleva."},
+        {"nombre": "Patricus productions", "idioma": "inglés", "servidor": "puertobravo://posix.live:47820",
+         "desc": "Un servidor que lleva un jugador. Sus normas las pone quien lo lleva."}
+      ]
+    },
+    {
+      "id": "otros",
+      "nombre": "Otros recursos de la comunidad",
+      "ayuda": "Guías, packs de sonidos, mods, vídeos y cualquier otra cosa que hagan los jugadores.",
+      "enlaces": []
+    }
+  ]
+}

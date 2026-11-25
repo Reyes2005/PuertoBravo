@@ -733,7 +733,7 @@ def territorios(p):
 
 # ======================================================================== mando
 def opciones_mando(app):
-    from .mando import ACCIONES, ORDEN_BOTONES
+    from .mando import ACCIONES, COMBINAR, ORDEN_BOTONES
     md = app.mando
     cfg = app.cfg
 
@@ -766,8 +766,9 @@ def opciones_mando(app):
                 app.abrir(Menu(app, tr('Acción para {nombre_boton}').format(nombre_boton=(md.nombre_boton(b))), [Opcion(ACCIONES[a][0].capitalize(), poner(a), ayuda=tr("Este botón pasa a hacer esto, y el cambio se guarda al momento.")) for a in ACCIONES],
                                intro=tr("Elige qué hará este botón")))
             return f
+        botones = [b for b in ORDEN_BOTONES if not (ctx.endswith("_combo") and b == COMBINAR)]     # en una combinación, el botón que se mantiene no cuenta
         app.abrir(Menu(app, titulo, lambda: [Opcion(f"{md.nombre_boton(b).capitalize()}: {ACCIONES[md.mapa[ctx].get(b, 'nada')][0]}", elegir(b),
-                                                    ayuda=tr("El botón y lo que hace ahora. Con Intro eliges otra acción para él.")) for b in ORDEN_BOTONES],
+                                                    ayuda=tr("El botón y lo que hace ahora. Con Intro eliges otra acción para él.")) for b in botones],
                        intro=tr("Pulsa Intro sobre un botón para cambiar lo que hace")))
 
     def restablecer():

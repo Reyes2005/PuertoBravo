@@ -21,8 +21,8 @@ APARCA = 6.7       # distancia del eje a la que se aparca (pegado al bordillo, f
 DIRS = [(0, 1), (1, 0), (0, -1), (-1, 0)]       # norte, este, sur, oeste
 NOMBRE_DIR = [tr("norte"), tr("este"), tr("sur"), tr("oeste")]                     # solo se dicen
 CARDINAL8 = [tr("norte"), tr("noreste"), tr("este"), tr("sureste"), tr("sur"), tr("suroeste"), tr("oeste"), tr("noroeste")]
-SUPERFICIE_TXT = {"via": tr("vías del tranvía"), "via_tren": tr("vías del tren"), "calzada": "calzada", "acera": "acera", "hierba": "césped", "arena": "arena",
-                  "plaza": "plaza", "muelle": "muelle", "pared": "pared", "fuera": tr("límite de la ciudad")}
+SUPERFICIE_TXT = {"via": tr("vías del tranvía"), "via_tren": tr("vías del tren"), "calzada": tr("calzada"), "acera": tr("acera"), "hierba": tr("césped"), "arena": tr("arena"),
+                  "plaza": tr("plaza"), "muelle": tr("muelle"), "pared": tr("pared"), "fuera": tr("límite de la ciudad")}
 
 
 def norm180(a):

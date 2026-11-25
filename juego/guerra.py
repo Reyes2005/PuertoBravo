@@ -231,15 +231,24 @@ class Guerra:
             self.personas.append(e)
             gente_.append(e)
         veh = None
+        coches = 0
         if llegan:
             ref = [self._crear_enemigo(self._grupo_guerra(refuerzo, banda, k), pos[0], pos[1]) for _ in range(llegan)]
-            veh = self.llegar_en_vehiculo(trab["vehiculo"], ref)
-            if veh is None:                                      # aquí no puede venir un vehículo: llegan a pie con los demás
-                for e in ref:
-                    e.x, e.y = self.mundo.punto_libre(pos[0] + random.uniform(-6, 6), pos[1] + random.uniform(-6, 6))
-                    self.personas.append(e)
-            else:
-                g["veh"].append(veh)
+            # en cada vehículo, los que caben (los ocupantes de su tipo, cuatro de serie): con muchos, llegan en varios
+            cupo = max(1, int(G.enemigo({"n": 1, "clase": refuerzo}).get("ocupantes", 4) or 4)) if refuerzo else 4
+            quedan = list(ref)
+            while quedan:
+                viajan = quedan[:cupo]
+                v = self.llegar_en_vehiculo(trab["vehiculo"], viajan)
+                if v is None:                                    # aquí no puede venir un vehículo: llegan a pie con los demás
+                    for e in quedan:
+                        e.x, e.y = self.mundo.punto_libre(pos[0] + random.uniform(-6, 6), pos[1] + random.uniform(-6, 6))
+                        self.personas.append(e)
+                    break
+                g["veh"].append(v)
+                veh = veh or v
+                coches += 1
+                quedan = quedan[len(viajan):]
             gente_ += ref
         for e in gente_:
             e.tag = "guerra"
@@ -249,7 +258,9 @@ class Guerra:
         g["quedan"] = len(gente_)
         self.son("evento", cat="interfaz")
         self.decir((tr('Ya están aquí: {len} de {banda}.').format(len=(len(gente_)), banda=(banda)) if g["total"] == 1 else tr('Oleada {k} de {total}: {len} de {banda}.').format(k=(k), total=(g['total']), len=(len(gente_)), banda=(banda))) + f" {self.situar(pos[0], pos[1], tr('Vienen'))}."
-                   + (tr(' {llegan} de ellos llegan en un vehículo: escucha el motor.').format(llegan=(llegan)) if veh is not None else "") + tr(" Pulsa Q para fijar al más cercano."))
+                   + ((tr(' {llegan} de ellos llegan en un vehículo: escucha el motor.').format(llegan=(llegan)) if coches == 1 else
+                       tr(' {llegan} de ellos llegan en {coches} vehículos: escucha los motores.').format(llegan=(llegan), coches=(coches))) if veh is not None else "")
+                   + tr(" Pulsa Q para fijar al más cercano."))
         if self.cfg["punteria"] == "completa":
             self.fijar(callar=True)
 

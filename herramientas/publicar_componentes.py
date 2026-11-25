@@ -25,6 +25,11 @@ Los componentes salen de la compilación (dist\\PuertoBravo), que es lo que el j
   el de la compilación y el de componentes_extra no se publica.
 Cada uno lleva su versión, que solo sube si su contenido ha cambiado desde la última publicación. El manifiesto,
 componentes.json, va firmado con la misma clave que las versiones del juego.
+
+Cada componente pide la versión del juego compilada (requiere_juego). Para arreglar un componente en versiones ya
+repartidas, herramientas\\componentes_requiere.json puede pedir una más antigua, solo mientras la compilación sea la
+que dice (con_la_version): al compilar la siguiente ya no vale y hay que decidirlo otra vez. Lo que vaya así tiene
+que servir en todas esas versiones (para un idioma, el catálogo de herramientas\\catalogo_union.py).
 """
 import base64
 import hashlib
@@ -48,6 +53,18 @@ META = {}            # de los componentes extra: nombre y descripción en cada i
 EXTRAS = set()       # sus identificadores: el juego no los trae de serie
 SALIDA = os.path.join(RAIZ, "dist", "componentes")
 ESTADO = os.path.join(RAIZ, "herramientas", "componentes_publicados.json")      # versión y huella de cada uno
+REQUIERE = os.path.join(RAIZ, "herramientas", "componentes_requiere.json")       # los que valen desde una versión anterior
+
+
+def requiere(cid):
+    """La versión del juego que pide un componente: la compilada, salvo que componentes_requiere.json diga otra para ella."""
+    try:
+        d = json.load(open(REQUIERE, encoding="utf-8")).get(cid) or {}
+    except (OSError, ValueError, AttributeError):
+        d = {}
+    if isinstance(d, dict) and d.get("con_la_version") == VERSION and d.get("requiere_juego"):
+        return str(d["requiere_juego"])
+    return VERSION
 
 
 def _archivos(base, *prefijos, excluir=()):
@@ -251,7 +268,7 @@ def main(args):
         return 0
     if "lista" in args:
         for cid, tipo, nombre, arch, hu, v, nuevo, _ in cambios:
-            print(f"{cid}: {tipo}, {len(arch)} archivos, versión {v}{' (cambia)' if nuevo else ''}")
+            print(f"{cid}: {tipo}, {len(arch)} archivos, versión {v}{' (cambia)' if nuevo else ''}, pide la {requiere(cid)}")
         return 0
     prueba = "prueba" in args
     destino = None
@@ -277,7 +294,7 @@ def main(args):
             shutil.copy2(zruta, destino_zip)
         lista.append({"id": cid, "tipo": tipo, "nombre": nombre, "version": version, "file": archivo, "sha256": sha, "size": tam,
                       "url": base_web + archivo, "espejos": {"github": f"https://github.com/{A.REPOSITORIO_GITHUB}/releases/download/{C.TAG_GITHUB}/{archivo}"},
-                      "requiere_juego": VERSION, "borra": sorted({destino_de(a) for a in set(viejos) - set(arch)}), **(META.get(cid) or presentar(cid, tipo))})
+                      "requiere_juego": requiere(cid), "borra": sorted({destino_de(a) for a in set(viejos) - set(arch)}), **(META.get(cid) or presentar(cid, tipo))})
         estado[cid] = {"version": version, "huella": hu, "archivos": arch}
     semilla = P.leer_privada()
     manifiesto = P.firmar({"formato": 1, "componentes": lista}, semilla)

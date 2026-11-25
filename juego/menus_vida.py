@@ -206,10 +206,15 @@ def ong(p, l):
            Opcion(tr("Hacer voluntariado cuatro horas"), p.voluntariado, ayuda=tr("No cobras nada, pero sube mucho tu ánimo y tu prestigio entre los vecinos. Una vez al día.")),
            Opcion(lambda: tr('En el barrio, {ciudadania_txt}').format(ciudadania_txt=(p.ciudadania_txt())),
                   ayuda=tr("El prestigio sube con el trabajo honrado, los cursos, los donativos y ayudando en los sucesos. Baja con los delitos. Con buen prestigio cobras más y la policía es más comprensiva."))]
+    from .honrado import AJ as HON
     if p.hon_antecedentes():
-        from .honrado import AJ as HON
         ops.insert(3, Opcion(tr('Hacer servicios a la comunidad: {entero} horas').format(entero=(HON.entero('servicio_horas'))), p.hon_servicio_comunidad,
                              ayuda=tr('Sin cobrar. Le quita {entero} días a tu antecedente penal más grave. Una vez al día.').format(entero=(HON.entero('servicio_quita')))))
+    if p.j.reputacion > 0:
+        ops.insert(3, Opcion(lambda: tr('Pasar {horas} horas con los chavales del barrio. Tu fama en la calle: {fama}').format(horas=HON.entero("chavales_horas"), fama=p.reputacion_txt()),
+                             p.hon_chavales,
+                             ayuda=tr('Sin cobrar, para que no acaben en la calle. Baja tu fama en la calle unos {fama} puntos sin tocar tu prestigio ni tu empleo, y los vecinos lo ven con buenos ojos. '
+                                      'Una vez al día. Sirve si la fama te ha subido sin buscarla: con mucho prestigio y algo de fama, el barrio empieza a sospechar que llevas una doble vida.').format(fama=HON.entero("chavales_fama"))))
     _menu(p, l, ops)
 
 

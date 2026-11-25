@@ -45,7 +45,7 @@ LOGROS = [
     ("arsenal", tr("Arsenal"), tr("Ten quince armas distintas."), lambda p: len(p.j.armas) >= 15),
     ("amigo", tr("Amistad de cuatro patas"), tr("Adopta un perro."), lambda p: bool(p.j.perro)),
     ("jefe", tr("[Jefe|Jefa] de barrio"), tr("Conquista tres territorios."), lambda p: len(p.j.territorios) >= 3),
-    ("amo", tr("La comarca es tuya"), tr("Conquista todos los barrios de las tres ciudades."), lambda p: len(p.j.territorios) >= sum(len(m.barrios) for m in p.mapas.values() if m.tipo == "ciudad")),
+    ("amo", tr("La comarca es tuya"), tr("Conquista todos los barrios de todas las ciudades."), lambda p: len(p.j.territorios) >= sum(len(m.barrios) for m in p.mapas.values() if m.tipo == "ciudad")),
     ("buzo", tr("Cazatesoros"), tr("Encuentra cinco tesoros buceando o con el detector."), lambda p: p.j.stats.get("tesoros", 0) >= 5),
     ("memoria", tr("Memoria de elefante"), tr("Aguanta ocho rondas en la máquina de memoria de sonidos."), lambda p: p.j.stats.get("simon", 0) >= 8),
     ("inversor", tr("Lobo de la bolsa"), tr("Ten acciones por valor de 20000 euros."), lambda p: sum(n * p.precio_accion(i) for i, n in p.j.acciones.items()) >= 20000),

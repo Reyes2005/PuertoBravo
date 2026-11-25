@@ -79,6 +79,9 @@ POR_DEFECTO = {
     "teclas": {},                  # teclas cambiadas: función original -> tecla física
     "viajes_trayecto": True,       # en taxi y autobús se oye el trayecto durante un rato; con no, se llega al momento
     "motor_sonido": "clasico",
+    "recoger_al_pasar": True,      # lo que sueltan los enemigos (dinero, armas, munición y objetos de valor) se recoge al pasar por encima; con no, con Intro
+    "salida_sonido": "",           # por dónde suena el juego: vacío = la salida de Windows, siguiéndola si cambia; o el nombre de una
+    "salida_extra": "",            # una segunda salida con lo mismo, para grabar o retransmitir (solo con el motor clásico)
     "eco_lugares": True,           # con el motor envolvente, cada sitio tiene su eco: calle, nave, interior, campo     # clasico | envolvente (binaural con OpenAL Soft; se aplica al abrir el juego)
     "sonido_mono": False,          # los dos oídos oyen lo mismo
     "sonido_holgado": False,       # con el motor clásico, un búfer de sonido más grande: quita chasquidos y cortes en equipos justos

@@ -940,7 +940,8 @@ def test_las_opciones_estan_en_el_menu_con_su_ayuda(robot):
     serie = {"defensa_propia": True, "frases_reacciones": True, "charla_peatones": "pocas", "soltar_municion": True, "soltar_armas": False,
              "patrullas_calle": True, "ambulancias": True, "helicoptero_policia": False, "guerra_calle": False,
              "gente_actua": True, "oficio_policia": False,               # las dos últimas, de la tanda 5
-             "reconquista": "normal"}                                    # y esta, de la tanda 9
+             "reconquista": "normal",                                    # y esta, de la tanda 9
+             "recoger_al_pasar": True}                                   # y esta, de la 1.7.4 (issue 28)
     for k, v in serie.items():
         assert config.POR_DEFECTO[k] == v, k
     menus_juego.opciones(robot.app)

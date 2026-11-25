@@ -493,20 +493,21 @@ Thanks to everyone who has helped make Puerto Bravo better through GitHub. Whene
 
 ### Code, translations and mods
 
-- [patricus3](https://github.com/patricus3): the careless style of the GPS autopilot and the El Diablo mod, a hitman agency with its own missions and contracts. Their reports and suggestions also brought the English release notes and the hurried driving styles, building on any Windows, fixes for failing tests, each game saving to its own slot, the scrapyard paying for your vehicles' upgrades, the places list sorted from nearest to farthest, the fix to the build check and the lab without its minigame. They also created the community's Telegram group.
+- [patricus3](https://github.com/patricus3): the careless style of the GPS autopilot and the El Diablo mod, a hitman agency with its own missions and contracts. Their reports and suggestions also brought the English release notes and the hurried driving styles, building on any Windows, fixes for failing tests, each game saving to its own slot, the scrapyard paying for your vehicles' upgrades, the places list sorted from nearest to farthest, the fix to the build check, the lab without its minigame, the game saying why the wanted level goes up and the autopilot in a big hurry going at full speed. They also created the community's English Telegram group and run the Patricus productions player server.
 - [Daoductrung](https://github.com/Daoductrung): the Vietnamese translation of the game, all of its documentation and the Marisma Negra mod.
 - [leoguimaoficial](https://github.com/leoguimaoficial): the complete Brazilian Portuguese translation and its corrections.
-- [dimasya34](https://github.com/dimasya34): the Russian translation of the game, its README and its corrections.
+- [dimasya34](https://github.com/dimasya34): the Russian translation of the game, its README and its corrections, and the fix for the update installer, which could not run with the game in Russian.
 
 ### Bug reports and suggestions
 
-- [lishi-lg](https://github.com/lishi-lg): the first bug ever reported, with its error log.
+- [lishi-lg](https://github.com/lishi-lg): the first bug ever reported, with its error log, and the suggestions to lower your street reputation with the neighbourhood kids and to do more with your companion: buying them a drink, giving them a lottery ticket, getting home together and using the phone without leaving the house.
 - [zeoltan](https://github.com/zeoltan): two unexpected crashes, the missing four-by-four and a sound pack proposal.
 - [aaronalostiza](https://github.com/aaronalostiza): the game closing when joining a server, and another error.
 - [jgudino013-ship-it](https://github.com/jgudino013-ship-it): gangs not attacking in waves when you are only defending yourself.
 - [amirh123123](https://github.com/amirh123123): the request for more languages, starting with English.
 - [cmjh](https://github.com/cmjh): a game that would not start.
 - [retrochiptuner](https://github.com/retrochiptuner): the powder magazine key mission, which still showed as available.
+- [UnDuende](https://github.com/UnDuende): the community's Spanish Telegram group.
 
 ---
 

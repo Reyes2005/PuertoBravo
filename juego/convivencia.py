@@ -29,8 +29,10 @@ AJ = Ajustes("convivencia", {
                         tr("{n} niega despacio: Cada uno en su casa. Es como mejor me va.")],
     "frases_llega": [tr("{n} llega con dos maletas y una planta. {casa} ya no es solo tuya."), tr("Ayudas a {n} a subir las cajas a {casa}. Desde hoy vivís bajo el mismo techo."),
                      tr("{n} deja su cepillo de dientes junto al tuyo, en {casa}. Ya está hecho.")],
+    "frases_llegais": [tr("Llegáis juntos. {n} deja las llaves en el recibidor y se quita los zapatos: por fin en casa."), tr("Entráis los dos. {n} enciende la luz del salón y se deja caer en el sofá."), tr("{n} abre la puerta, cuelga el abrigo y te pregunta si cenáis algo.")],
     "frases_recibe": [tr("{n} te oye llegar: ¿Qué tal el día?"), tr("{n} está en el sofá, con los pies en alto, y te hace sitio."), tr("{n} canturrea en la cocina. Te da un beso al pasar."),
                       tr("{n} levanta la vista del móvil y sonríe al verte."), tr("Huele a café recién hecho. {n} te sirve una taza sin preguntar.")],
+    "frases_ausente_fuera": [tr("En casa no hay nadie. {n} anda con sus cosas: luego vuelve."), tr("Hay una nota en la nevera: «He salido a hacer unos recados. Luego nos vemos»."), tr("{n} no está, y en su sitio de siempre tampoco: anda a lo suyo.")],
     "frases_ausente": [tr("En casa no hay nadie: {n} está en {lugar}."), tr("Hay una nota en la nevera: «Estoy en {lugar}. Luego nos vemos»."), tr("{n} no está: a estas horas anda por {lugar}.")],
     "frases_charla": [tr("Os contáis el día sin prisa."), tr("{n} te cuenta un cotilleo del barrio y acabáis riendo."), tr("Habláis de lo que haréis el fin de semana."),
                       tr("{n} te pregunta en qué andas metid[o|a]. Cambias de tema, y lo nota."), tr("Os quedáis un rato en silencio, a gusto.")],
@@ -192,13 +194,18 @@ class Convivencia:
         if pers is None or casa.id != j.convive_casa:
             return ""
         n = pers["nombre"]
-        if not self.pareja_en_casa():
+        if not self.pareja_en_casa() and getattr(self, "_llegais_juntos", None) != j.convive:
+            from . import encuentros
             l = self.lug(pers.get("lugar"))
-            return AJ.frase("frases_ausente", n=n, lugar=self.nombre_lugar(l) if l else "sus cosas")
+            if l is None or not encuentros.presente(self, pers):  # si tampoco está en su sitio, no se dice uno donde no la encontrarías (issue 29)
+                return AJ.frase("frases_ausente_fuera", n=n)
+            return AJ.frase("frases_ausente", n=n, lugar=self.nombre_lugar(l))
         primera = j.convive_hoy.get("visto") != self.dia
         j.convive_hoy["visto"] = self.dia
         self.relacion(j.convive)["ultimo"] = self.dia
-        texto = AJ.frase("frases_recibe", n=n)
+        juntos = getattr(self, "_llegais_juntos", None) == j.convive      # habéis llegado los dos: nada de «te oye llegar» (issue 29)
+        self._llegais_juntos = None
+        texto = AJ.frase("frases_llegais" if juntos else "frases_recibe", n=n)
         pet = self._peticion_nueva(pers) if primera else ""
         return texto + (" " + pet if pet else "")
 

@@ -238,6 +238,7 @@ class Combate:
                     self.decir(tr("Sin munición."), True)
                 return
             m["cargador"] -= 1
+            self.app.vibrar(0.35, 0.1, 70)                       # el retroceso en el mando, se acierte o no
             if m.get("silenciador"):                             # con silenciador: un chasquido seco, y nadie se entera
                 self.son(a["sonido"], vol=0.3, tono=random.uniform(1.5, 1.6))
             else:
@@ -448,11 +449,11 @@ class Combate:
             if not getattr(p, "inofensivo", False) and not getattr(p, "deportivo", False):
                 self.aviso_ambulancia(p.x, p.y)                  # al rato acude una ambulancia
             if p.tipo == "civil":
-                self.delito(3 if atropello else 4, "atropello" if atropello else "homicidio")
+                self.delito(3 if atropello else 4, tr("atropello") if atropello else tr("homicidio"))
                 self.decir(tr("Has atropellado a un peatón.") if atropello else tr('{nombre} cae al suelo.').format(nombre=(p.nombre)))
             elif p.tipo == "policia":
-                self.delito(6, tr("agresión a un agente"), siempre=True)
-                self.decir(tr("Policía abatido."))
+                self.delito(6, tr("atropello de un agente") if atropello else tr("agresión a un agente"), siempre=True)
+                self.decir(tr("Has atropellado a un agente.") if atropello else tr("Policía abatido."))
             elif getattr(p, "inofensivo", False):                # un muñeco o una diana de prácticas: ni delito, ni botín, ni cuenta
                 self.decir(tr('{nombre}: al suelo.').format(nombre=(p.nombre)))
                 return
@@ -473,7 +474,7 @@ class Combate:
                     if banda:
                         self.cambiar_rep_banda(banda, -4)        # matar a los suyos no se olvida
                     if p.tag != "evento" and not self.es_agresor(p):      # tumbar a quien te ha atacado primero es defensa propia
-                        self.delito(0.6, None)
+                        self.delito(0.6, tr("matar a quien no te atacaba"))
                 if not sin_guerra:
                     self.guerra_baja(p)
             if p.tipo != "civil" and random.random() < 0.6 or random.random() < 0.2:
@@ -616,6 +617,8 @@ class Combate:
             puntos *= 0.7            # a un buen vecino se le pasan por alto las faltas pequeñas
         if j.estrellas == 0 and j.puntos_busqueda + puntos >= UMBRAL[0] and texto:
             self.decir(tr('Te han visto. Delito: {texto}.').format(texto=(texto)))
+        elif texto:
+            self._ultimo_delito = (texto, self.t)                # si con esto sube el nivel, se dice por qué (actualizar_policia)
         j.puntos_busqueda += puntos
         self.sv_delito(puntos)                                   # en un servidor, la cuenta la lleva él
 
@@ -655,7 +658,10 @@ class Combate:
             self.app.vibrar(0.5, 0.5, 250)
             pista = tr(" Aléjate de las sirenas hasta que dejen de buscarte, o pinta el vehículo en un taller.") if j.estrellas == 0 else ""
             aviso = G.aviso_nivel(n) if self.mundo.policia and not self.sv_policia_comun() else ""      # con mucha búsqueda sale gente mejor armada: lo dicen los datos
-            self.decir(tr('Nivel de búsqueda {n} de 5.{pista}').format(n=(n), pista=(pista)) + (" " + aviso if aviso else ""))
+            motivo = getattr(self, "_ultimo_delito", None)
+            por = tr(' Delito: {texto}.').format(texto=motivo[0]) if j.estrellas > 0 and motivo and self.t - motivo[1] < 10 else ""
+            self._ultimo_delito = None
+            self.decir(tr('Nivel de búsqueda {n} de 5.{pista}').format(n=(n), pista=(pista)) + por + (" " + aviso if aviso else ""))
         j.estrellas = n
         if n == 0:
             return

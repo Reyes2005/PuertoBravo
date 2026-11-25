@@ -465,11 +465,11 @@ def test_motor_de_sonido_con_respaldo(monkeypatch):
     creados = []
 
     class Clasico:
-        def __init__(self, dispositivo=True):
+        def __init__(self, dispositivo=True, **salidas):
             creados.append(("clasico", dispositivo))
 
     class Envolvente:
-        def __init__(self):
+        def __init__(self, **salidas):
             creados.append(("envolvente",))
     monkeypatch.setattr(audio_al, "Mezclador", Clasico)
     monkeypatch.setattr(audio_al, "MezcladorAL", Envolvente)
@@ -494,7 +494,7 @@ def test_motor_de_sonido_con_respaldo(monkeypatch):
     monkeypatch.setattr(audio_al, "disponible", lambda: True)
 
     class Roto:
-        def __init__(self):
+        def __init__(self, **salidas):
             raise OSError("no arranca")
     monkeypatch.setattr(audio_al, "MezcladorAL", Roto)                      # no arranca: el clásico
     audio_al.crear(cfg)

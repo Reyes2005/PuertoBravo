@@ -27,6 +27,7 @@ herramientas/claves/
 publicar_destino.txt
 data/actualizacion/
 data/logs/
+data/comunidad_descargada.json
 
 # Restos de pruebas
 data/sonidos/_prueba/

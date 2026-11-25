@@ -15,6 +15,8 @@ import re
 import sys
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from marcar import es_orden_windows  # noqa: E402
 HUECO = re.compile(r"\{[^{}]*\}|%[-+ #0-9.]*[sdifr]|\{\{|\}\}")
 MARCA_ES = re.compile(r"\[[a-záéíóú]*\|[a-záéíóú]*\]")
 PALABRAS_ES = re.compile(r"\b(que|los|las|del|para|con|una|está|tienes|puedes|pero|cuando|también|más)\b", re.I)
@@ -83,6 +85,9 @@ def main(args):
                 textos[es] = en
                 revisar.pop(es, None)
     for es in list(textos):                                       # lo que ya estaba en el catálogo, con los bordes al día
+        if es_orden_windows(es):                                  # una línea de .bat no se traduce nunca: fuera del catálogo
+            del textos[es]
+            continue
         textos[es] = bordes(es, textos[es])
     faltan = [k for k in origen if k not in textos and k not in revisar]
     cat["textos"] = dict(sorted(textos.items()))

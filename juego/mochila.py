@@ -146,7 +146,8 @@ class Mochila:
             self.objetos.append(ob)
             return False
         self.son("recoger", cat="interfaz")
-        self.decir(tr('A la mochila: {nombre}. {moc_txt}.').format(nombre=(CATALOGO[ob.item]['nombre']), moc_txt=(self.moc_txt())))
+        robado = tr(" Es robado: en una casa de empeños dan menos por él, y si te detienen, te lo quitan.") if getattr(ob, "robado", False) else ""
+        self.decir(tr('A la mochila: {nombre}. {moc_txt}.').format(nombre=(CATALOGO[ob.item]['nombre']), moc_txt=(self.moc_txt())) + robado)
         return True
 
     # ------------------------------------------------------------------ de dónde salen

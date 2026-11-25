@@ -479,20 +479,21 @@ Gracias a todas las personas que han ayudado a mejorar Puerto Bravo desde GitHub
 
 ### Con código, traducciones y mods
 
-- [patricus3](https://github.com/patricus3): el estilo temerario del piloto automático del GPS y el mod El Diablo, una agencia de sicarios con sus misiones y sus contratos. Además, sus avisos y propuestas trajeron las novedades en inglés y los estilos de conducción con prisa, la compilación en cualquier Windows, el arreglo de pruebas que fallaban, que cada partida guarde en su propia ranura, que el desguace pague las mejoras de tus vehículos, la lista de lugares de más cerca a más lejos, el arreglo de la comprobación de la compilación y el laboratorio sin su minijuego. Además, creó el grupo de Telegram de la comunidad.
+- [patricus3](https://github.com/patricus3): el estilo temerario del piloto automático del GPS y el mod El Diablo, una agencia de sicarios con sus misiones y sus contratos. Además, sus avisos y propuestas trajeron las novedades en inglés y los estilos de conducción con prisa, la compilación en cualquier Windows, el arreglo de pruebas que fallaban, que cada partida guarde en su propia ranura, que el desguace pague las mejoras de tus vehículos, la lista de lugares de más cerca a más lejos, el arreglo de la comprobación de la compilación, el laboratorio sin su minijuego, que el juego diga por qué sube el nivel de búsqueda y que el piloto con mucha prisa vaya a toda velocidad. Además, creó el grupo de Telegram de la comunidad en inglés y lleva el servidor de jugadores Patricus productions.
 - [Daoductrung](https://github.com/Daoductrung): la traducción al vietnamita del juego, de toda su documentación y del mod Marisma Negra.
 - [leoguimaoficial](https://github.com/leoguimaoficial): la traducción completa al portugués de Brasil y sus correcciones.
-- [dimasya34](https://github.com/dimasya34): la traducción al ruso del juego, su README y sus correcciones.
+- [dimasya34](https://github.com/dimasya34): la traducción al ruso del juego, su README y sus correcciones, y el arreglo del instalador de las actualizaciones, que con el juego en ruso no se podía ejecutar.
 
 ### Con avisos de fallos y propuestas
 
-- [lishi-lg](https://github.com/lishi-lg): el primer fallo avisado, con su registro de error.
+- [lishi-lg](https://github.com/lishi-lg): el primer fallo avisado, con su registro de error, y las propuestas de bajar la fama en la calle con los chavales del barrio y de hacer más cosas con tu acompañante: invitarle a algo, regalarle un décimo, llegar juntos a casa y usar el móvil sin salir de ella.
 - [zeoltan](https://github.com/zeoltan): dos cierres inesperados del juego, el todoterreno que no aparecía y la propuesta de un pack de sonidos.
 - [aaronalostiza](https://github.com/aaronalostiza): el cierre del juego al entrar a un servidor y otro error.
 - [jgudino013-ship-it](https://github.com/jgudino013-ship-it): que las bandas no te ataquen en oleadas cuando solo te defiendes.
 - [amirh123123](https://github.com/amirh123123): la petición de más idiomas, empezando por el inglés.
 - [cmjh](https://github.com/cmjh): un juego que no llegaba a arrancar.
 - [retrochiptuner](https://github.com/retrochiptuner): la misión de la llave del polvorín, que seguía saliendo como disponible.
+- [UnDuende](https://github.com/UnDuende): el grupo de Telegram de la comunidad en español.
 
 ---
 

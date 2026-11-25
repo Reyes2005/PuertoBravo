@@ -110,11 +110,16 @@ class Misiones:
     def rep_banda_txt(x):
         return tr("sois aliados") if x >= 60 else tr("te respetan y te dejan en paz") if x >= 30 else tr("te la tienen jurada") if x <= -60 else tr("van a por ti") if x <= -30 else tr("ni amigos ni enemigos")
 
+    def misiones_en_lugar(self, lugar_id):
+        """Las misiones que se pueden empezar en ese lugar. Los tutoriales, salvo el primero, se empiezan desde el móvil:
+        no deben estorbar en la oficina de empleo o en el embarcadero."""
+        return [m for m in self.misiones_disponibles()
+                if m["lugar"] == lugar_id and (not m.get("tutorial") or m["id"] == "tut01") and not m.get("explicacion")]
+
     def mision_en_lugar(self, lugar_id):
-        for m in self.misiones_disponibles():
-            if m["lugar"] == lugar_id and (not m.get("tutorial") or m["id"] == "tut01") and not m.get("explicacion"):
-                return m                    # los demás tutoriales se empiezan desde el móvil: no deben estorbar en la oficina de empleo o en el embarcadero
-        return None
+        ms = self.misiones_en_lugar(lugar_id)
+        marcada = next((m for m in ms if m["id"] == getattr(self, "mision_marcada", None)), None)
+        return marcada or (ms[0] if ms else None)
 
     def objetivo_txt(self, sugerir=False):
         """Lo que toca hacer ahora. Con ``sugerir``, sin misión en curso, la siguiente se dice como consejo («Deberías

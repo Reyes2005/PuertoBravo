@@ -1413,6 +1413,35 @@ class Partida(Conduccion, Combate, Misiones, Trabajos, Extras, Extras2, Extras3,
                 self.decir(tr('Desvío a {nombre}. Al llegar, el GPS vuelve a {nombre2}.').format(nombre=(nombre), nombre2=(g['anterior']['nombre'])))
         return g
 
+    def empezar_mision_aqui(self, m, l):
+        self.mision_marcada = None
+        if m.get("honrada"):                                     # el buen camino se ofrece: nadie está obligado a seguirlo para entrar en el sitio
+            self.hon_ofrecer_mision(m, l)
+            return
+        self.iniciar_mision(m)
+
+    def elegir_mision_aqui(self, l, ms):
+        """Varias misiones empiezan en este sitio: se elige cuál, o se entra sin empezar ninguna."""
+        from . import menus_juego as mj
+        from .menus import Menu, Opcion
+        app = self.app
+
+        def empezar(m):
+            def f():
+                app.cerrar(menu)
+                self.empezar_mision_aqui(m, l)
+            return f
+
+        def entrar():
+            app.cerrar(menu)
+            mj.lugar(self, l)
+        ops = [Opcion(tr('{titulo}. {resumen}').format(titulo=m["titulo"], resumen=self.txt(m.get("resumen", ""))), empezar(m),
+                      ayuda=self.mision_vehiculo_txt(m) or tr("Intro la empieza.")) for m in ms]
+        ops.append(Opcion(tr('Entrar en {nombre} sin empezar ninguna').format(nombre=l.nombre), entrar, ayuda=tr("Abre el menú del sitio, como cualquier otro día.")))
+        menu = Menu(app, tr('Aquí empiezan {n} misiones. ¿Cuál quieres hacer?').format(n=len(ms)), ops,
+                    intro=tr("Si marcas una en el móvil, en Misiones, la próxima vez empieza esa sin preguntar."))
+        app.abrir(menu)
+
     def gps_a_lugar(self, lugar, auto=False, callar=False, desvio=False):
         if lugar.mapa != self.mundo.id:
             con = self.conexion_hacia(lugar.mapa)
@@ -1770,15 +1799,16 @@ class Partida(Conduccion, Combate, Misiones, Trabajos, Extras, Extras2, Extras3,
                     return
         l = self.lugar_al_alcance()
         if l:
-            m = self.mision_en_lugar(l.id)
-            if m and not self.mision:
+            ms = self.misiones_en_lugar(l.id)
+            if ms and not self.mision:
                 if j.veh and abs(j.veh.vel) > 2:
                     self.decir(tr("Detén el vehículo primero."), True)
                     return
-                if m.get("honrada"):                             # el buen camino se ofrece: nadie está obligado a seguirlo para entrar en el sitio
-                    self.hon_ofrecer_mision(m, l)
+                marcada = next((m for m in ms if m["id"] == getattr(self, "mision_marcada", None)), None)
+                if len(ms) > 1 and marcada is None:              # varias aquí y ninguna marcada en el móvil: eliges tú, no la primera de la lista
+                    self.elegir_mision_aqui(l, ms)
                     return
-                self.iniciar_mision(m)
+                self.empezar_mision_aqui(marcada or ms[0], l)
                 return
             mj.lugar(self, l)
             return
@@ -1828,12 +1858,12 @@ class Partida(Conduccion, Combate, Misiones, Trabajos, Extras, Extras2, Extras3,
             premio = self.precio("casete_premio", 250)
             self.dar_dinero(premio)
             self.decir(tr('Has encontrado un objeto de colección, {nombre}: llevas {n} de {total}. Premio de {premio} euros.').format(nombre=(o.nombre), n=(n), total=(total), premio=(premio)))
-            if n % 5 == 0 and n != total:                      # cada cinco, un premio y algo de fama
+            # Cada cinco, un premio. Ni estos ni el lote completo dan fama en la calle: encontrar cosas no es cosa
+            # del mundo del delito, y la subían a quien juega limpio sin que lo buscara (issue 28).
+            if n % 5 == 0 and n != total:
                 self.dar_dinero(self.precio("casete_cinco", 1000))
-                self.cambiar_reputacion(2)
-                self.decir(tr('Ya son {n}. Un coleccionista te adelanta {precio} euros y tu nombre empieza a sonar.').format(n=(n), precio=(self.precio('casete_cinco', 1000))))
+                self.decir(tr('Ya son {n}. Un coleccionista te adelanta {precio} euros.').format(n=(n), precio=(self.precio('casete_cinco', 1000))))
             if n == total:
-                self.cambiar_reputacion(5)
                 self.dar_dinero(self.precio("casete_todos", 20000))
                 self.decir(tr('¡Has encontrado todos los objetos de colección! Un coleccionista te paga {precio} euros por el lote completo.').format(precio=(self.precio('casete_todos', 20000))))
         elif o.tipo == "mision":
@@ -2178,7 +2208,8 @@ class Partida(Conduccion, Combate, Misiones, Trabajos, Extras, Extras2, Extras3,
             elif d > 60 and o.canal is not None:
                 o.canal.parar()
                 o.canal = None
-            if o.tipo in ("dinero", "municion", "arma", "valor") and d < 1.8 and not j.veh and not getattr(o, "no_auto", False):
+            if (o.tipo in ("dinero", "municion", "arma", "valor") and d < 1.8 and not j.veh and not getattr(o, "no_auto", False)
+                    and self.cfg["recoger_al_pasar"]):
                 self.recoger(o)
 
     def _ambiente(self, dt):

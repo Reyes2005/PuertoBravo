@@ -91,3 +91,36 @@ def test_el_componente_del_ruso_dice_que_es_en_cada_idioma():
     d = P.presentar("idioma-ru", "idioma", RAIZ)
     assert d["nombres"]["es"] == "ruso (Русский)" and d["nombres"]["en"] == "Russian (Русский)" and d["nombres"]["ru"] == "Русский"
     assert "Opciones, Idioma" in d["descripcion"]
+
+
+def test_el_instalador_no_traduce_sintaxis_de_windows(tmp_path):
+    from juego import actualizador as A
+    prog = tmp_path / "prog"
+    nueva = tmp_path / "actualizacion" / "nueva"
+    prog.mkdir(parents=True)
+    nueva.mkdir(parents=True)
+    (nueva / "PuertoBravo.exe").write_bytes(b"exe")
+    antiguo = os.environ.get("PUERTOBRAVO_IDIOMA")
+    os.environ["PUERTOBRAVO_IDIOMA"] = "ru"
+    try:
+        i18n.cargar("ru")
+        bat = A.escribir_instalador(str(nueva), str(prog), pid=1, version="1.7.5")
+        texto = open(bat, encoding="utf-8").read()
+        assert "@echo off" in texto
+        assert "setlocal" in texto
+        assert "goto fin" in texto
+        assert "goto copiar" in texto
+        assert "if errorlevel 1 goto programas" in texto
+        assert 'set "APP=' in texto
+        assert 'set "NUEVA=' in texto
+        assert 'set "COPIA=' in texto
+        assert '(goto) 2>nul & del "%~f0"' in texto
+        for prohibido in ("установите", "перейдите", "если уровень ошибки", "иди подожди", ">ноль", "«%REG%»", "%CОПИЯ%"):
+            assert prohibido not in texto, f"Texto traducido indebido en el .bat: {prohibido}"
+    finally:
+        if antiguo is None:
+            os.environ.pop("PUERTOBRAVO_IDIOMA", None)
+        else:
+            os.environ["PUERTOBRAVO_IDIOMA"] = antiguo
+        i18n.cargar("es")
+

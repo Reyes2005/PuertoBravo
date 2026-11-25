@@ -7,6 +7,9 @@ las comparaciones, así que alguna acaba dicha en español dentro de una frase e
 Al decir algo en un idioma que no es el español, pulir() cambia cada palabra suelta en minúscula que esté en la lista de
 ese idioma (data/idiomas/<código>/palabras.json, {palabra española: traducción}) y en el catálogo como palabra sola. Solo
 palabras enteras, en minúscula y de tres letras o más: los nombres propios van con mayúscula y no se tocan.
+
+Una palabra que también es del idioma («fin» en inglés, como en «shark fin») no se toca: o sale en alguna traducción del
+catálogo, o va en la lista "_del_idioma" de palabras.json.
 """
 import json
 import os
@@ -32,12 +35,16 @@ def _mapa():
         for es, otro in textos.items():                    # las palabras sueltas del catálogo: «nunca», «fácil»...
             if isinstance(otro, str) and re.fullmatch(r"[a-záéíóúñü]{3,}", es) and otro and otro != es:
                 mapa[es] = otro
+        lista = {}
         try:
             with open(os.path.join(i18n.carpeta(cod), "palabras.json"), encoding="utf-8") as f:
-                mapa.update({k: v for k, v in json.load(f).items() if isinstance(v, str) and v and k != v})
+                lista = json.load(f)
+            mapa.update({k: v for k, v in lista.items() if isinstance(v, str) and v and k != v})
         except (OSError, ValueError, AttributeError):
             pass
         propias = _del_idioma(textos)                      # también para palabras.json: «media» en inglés es «media»
+        extra = lista.get("_del_idioma") if isinstance(lista, dict) else None
+        propias.update(w for w in (extra if isinstance(extra, list) else []) if isinstance(w, str))
         mapa = {k: v for k, v in mapa.items() if k not in propias}
     _cache.update(idioma=cod, mapa=mapa)
     return mapa

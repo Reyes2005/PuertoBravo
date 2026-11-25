@@ -24,6 +24,7 @@ AL_POSITION, AL_GAIN, AL_PITCH, AL_LOOPING, AL_BUFFER, AL_SOURCE_STATE = 0x1004,
 AL_PLAYING, AL_PAUSED, AL_ORIENTATION, AL_SOURCE_RELATIVE = 0x1012, 0x1013, 0x100F, 0x202
 AL_ROLLOFF_FACTOR, AL_FORMAT_MONO16, AL_FORMAT_STEREO16, AL_NONE = 0x1021, 0x1101, 0x1103, 0
 ALC_HRTF_SOFT, ALC_HRTF_STATUS_SOFT, ALC_FREQUENCY = 0x1992, 0x1993, 0x1007
+ALC_CONNECTED, ALC_ALL_DEVICES_SPECIFIER = 0x313, 0x1013
 AL_SAMPLE_OFFSET = 0x1025
 _CATS_MUNDO = ("efectos", "ambiente")
 # Efectos (extensión EFX): un único eco, que cambia según dónde esté el oyente.
@@ -68,6 +69,7 @@ def _cargar(ruta):
         "alcOpenDevice": (vp, [ctypes.c_char_p]), "alcCloseDevice": (ctypes.c_char, [vp]), "alcCreateContext": (vp, [vp, ctypes.POINTER(ci)]),
         "alcMakeContextCurrent": (ctypes.c_char, [vp]), "alcDestroyContext": (None, [vp]), "alcGetIntegerv": (None, [vp, ci, ci, ctypes.POINTER(ci)]),
         "alcGetError": (ci, [vp]), "alGetError": (ci, []), "alDistanceModel": (None, [ci]),
+        "alcGetString": (vp, [vp, ci]), "alcGetProcAddress": (vp, [vp, ctypes.c_char_p]),
         "alGenSources": (None, [ci, ctypes.POINTER(cu)]), "alDeleteSources": (None, [ci, ctypes.POINTER(cu)]),
         "alGenBuffers": (None, [ci, ctypes.POINTER(cu)]), "alDeleteBuffers": (None, [ci, ctypes.POINTER(cu)]),
         "alBufferData": (None, [cu, ci, vp, ci, ci]), "alSourcei": (None, [cu, ci, ci]), "alSourcef": (None, [cu, ci, cf]),
@@ -96,10 +98,12 @@ class MezcladorAL(Mezclador):
     """El mezclador del juego con salida binaural por OpenAL Soft."""
     envolvente = True
 
-    def __init__(self):
+    def __init__(self, salida=""):
         super().__init__(dispositivo=False)              # sin el flujo de sonido de Python: de la salida se ocupa OpenAL
+        self.salida = str(salida or "")
         self.al = _cargar(ruta_dll())
-        self.dev = self.al.alcOpenDevice(None)
+        nombre = self._nombre_al(self.salida) if self.salida else None
+        self.dev = self.al.alcOpenDevice(nombre) or (self.al.alcOpenDevice(None) if nombre else None)
         if not self.dev:
             raise OSError(tr("OpenAL no ha podido abrir el dispositivo de sonido"))
         atributos = (ctypes.c_int * 3)(ALC_HRTF_SOFT, 1, 0)
@@ -120,8 +124,74 @@ class MezcladorAL(Mezclador):
         self._eco_g = 0.0
         self.eco_activo = True                           # el jugador puede quitar el eco en las opciones
         self._preparar_eco()
+        self.nombre_salida = self._salida_actual()
+        from . import salidas
+        self._defecto_visto = salidas.por_defecto()
         registro.info("sonido", "Motor de sonido envolvente", binaural="sí" if self.binaural else "no", frecuencia=self.frecuencia,
-                      eco="sí" if self._eco_slot else "no")
+                      eco="sí" if self._eco_slot else "no", salida=self.nombre_salida)
+
+    # ------------------------------------------------------------------ la salida: seguirla, recuperarla y cambiarla
+    def _dispositivos_al(self):
+        """Los nombres de las salidas que ve OpenAL ahora mismo."""
+        p = self.al.alcGetString(None, ALC_ALL_DEVICES_SPECIFIER)
+        out = []
+        while p:
+            s = ctypes.string_at(p)
+            if not s:
+                break
+            out.append(s.decode("utf-8", "replace"))
+            p += len(s) + 1
+        return out
+
+    def _nombre_al(self, corto):
+        from . import salidas
+        return next((n.encode("utf-8") for n in self._dispositivos_al() if salidas.coincide(corto, n)), None)
+
+    def _salida_actual(self):
+        p = self.al.alcGetString(self.dev, ALC_ALL_DEVICES_SPECIFIER) if self.dev else None
+        return ctypes.string_at(p).decode("utf-8", "replace") if p else ""
+
+    def reabrir(self, motivo="", nombre=None):
+        """Cambia de salida sin cortar lo que suena: OpenAL Soft lleva la mezcla a otro dispositivo (ALC_SOFT_reopen_device)."""
+        f = self.al.alcGetProcAddress(self.dev, b"alcReopenDeviceSOFT")
+        if not f:
+            return False
+        reabrir = ctypes.CFUNCTYPE(ctypes.c_char, ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_int))(f)
+        antes = self.nombre_salida
+        destino = self._nombre_al(self.salida) if (nombre is None and self.salida) else nombre
+        ok = bool(ord(reabrir(self.dev, destino, (ctypes.c_int * 3)(ALC_HRTF_SOFT, 1, 0))))
+        if not ok and destino:
+            ok = bool(ord(reabrir(self.dev, None, (ctypes.c_int * 3)(ALC_HRTF_SOFT, 1, 0))))
+        self.nombre_salida = self._salida_actual()
+        registro.info("sonido", "Salida de sonido abierta de nuevo", motivo=motivo, antes=antes, ahora=self.nombre_salida, motor="envolvente")
+        return ok
+
+    def vigilar(self, ahora=None):
+        import time
+        ahora = time.monotonic() if ahora is None else ahora
+        if ahora - self._t_vigila < 1.5:
+            return False
+        self._t_vigila = ahora
+        from . import salidas
+        conectado = ctypes.c_int(1)
+        self.al.alcGetIntegerv(self.dev, ALC_CONNECTED, 1, ctypes.byref(conectado))
+        defecto = salidas.por_defecto()
+        motivo = None
+        if not conectado.value:
+            motivo = "se ha cortado"
+        elif not self.salida and defecto and self._defecto_visto and defecto != self._defecto_visto:
+            motivo = "ha cambiado la de Windows"
+        elif self.salida and not salidas.coincide(self.salida, self.nombre_salida) and salidas.presente(self.salida):
+            motivo = "ha vuelto la elegida"
+        if defecto:
+            self._defecto_visto = defecto
+        return self.reabrir(motivo) if motivo else False
+
+    def poner_salida(self, nombre="", extra=None):
+        self.salida = str(nombre or "")
+        if extra is not None:
+            self.extra = str(extra or "")                # en el motor envolvente no hay segunda salida: la mezcla es de OpenAL
+        return self.reabrir("cambiada en las opciones")
 
     # ------------------------------------------------------------------ eco según el lugar
     def _preparar_eco(self):
@@ -268,6 +338,7 @@ class MezcladorAL(Mezclador):
         return c
 
     def actualizar(self):
+        self.vigilar()
         with self._lock:
             lista = list(self.canales)
         import time
@@ -336,6 +407,8 @@ def crear(cfg, pruebas=False):
         m.sincrono = True
         return m
     forzado = os.environ.get("PUERTOBRAVO_MOTOR", "")              # para pruebas: «envolvente» o «clasico»
+    _c = dict(getattr(cfg, "v", cfg))                              # las salidas pueden faltar en una configuración antigua
+    salida, extra = str(_c.get("salida_sonido", "") or ""), str(_c.get("salida_extra", "") or "")
     if (cfg["motor_sonido"] == "envolvente" or forzado == "envolvente") and forzado != "clasico" and not cfg["sonido_mono"]:
         from . import procesador
         if not disponible():
@@ -344,9 +417,9 @@ def crear(cfg, pruebas=False):
             registro.aviso("sonido", "Procesador antiguo: se usa el motor de sonido clásico")
         else:
             try:
-                return MezcladorAL()
+                return MezcladorAL(salida=salida)
             except Exception as e:
                 registro.aviso("sonido", "El motor envolvente no ha arrancado; se usa el clásico", error=type(e).__name__)
     from . import audio
     audio.HOLGADO = bool(dict(getattr(cfg, "v", cfg)).get("sonido_holgado", False))      # búfer grande, para equipos donde el sonido da chasquidos
-    return Mezclador(dispositivo=True)
+    return Mezclador(dispositivo=True, salida=salida, extra=extra)

@@ -32,6 +32,7 @@ AJ = Ajustes("vida_honrada", {
     "fama_respeto": 20, "fama_descuento": 12, "fama_recargo": 15,
     # antecedentes penales
     "caduca_leve": 10, "caduca_media": 25, "caduca_grave": 50, "servicio_quita": 5, "servicio_horas": 4, "abogado_precio": 1200,
+    "chavales_fama": 4, "chavales_horas": 4, "chavales_prestigio": 1,
     # carrera profesional
     "periodo_dias": 7, "meritos_ascenso": 3, "avisos_despido": 3, "nota_buena": 75, "nota_correcta": 50, "nota_floja": 25, "prima_buena": 10,
     "veto_dias": 10, "carta_periodos": 3, "incidencia_prob": 40, "prestigio_periodo": 2, "prestigio_despido": 6, "titulo_prestigio": 4,
@@ -63,6 +64,7 @@ AJ = Ajustes("vida_honrada", {
     "frases_banda_deja": [tr("{nombre} te mira de arriba abajo y escupe al suelo, pero te deja pasar: en el barrio saben que eres buena gente."),
                           tr("{nombre} se te queda mirando. Alguien le dice algo al oído y se aparta: contigo no va la cosa, mientras no les toques."),
                           tr("{nombre} te reconoce y se encoge de hombros: «Sigue tu camino». No quiere líos con quien no se mete en los suyos.")],
+    "frases_chavales": [tr("Pasas {horas} horas con los chavales del barrio: deberes, un partido y una charla de las que no se olvidan. En la calle se habla menos de ti y más de lo que haces. Son las {hora}."), tr("{horas} horas en el local de la ONG con los chicos que tienen la calle demasiado cerca. Les cuentas cómo acaba aquello. Tu fama en la calle baja un poco. Son las {hora}.")],
     "frases_defensa_buena": [tr("Lo has hecho en defensa propia y en el barrio lo saben: su banda no te lo tendrá en cuenta."),
                              tr("Te atacaron primero y hay testigos que lo cuentan así: esto no va a empezar ninguna guerra.")],
     "frases_dos_caminos": [tr("Desde aquí puedes llevar la vida que quieras. La calle: los encargos de tu tía te llevan al Chispas y a negocios cada vez más turbios, que dan dinero rápido y traen a la policía detrás. "
@@ -431,6 +433,26 @@ class Honrado:
         resto = a["c"] - self.dia
         self.decir(tr('{horas} horas limpiando parques y pintando bancos. ').format(horas=(horas)) + (tr('A tu antecedente más grave le quedan {resto} días.').format(resto=(resto)) if resto > 0 else tr("Con esto, tu antecedente más grave queda cancelado."))
                    + tr(' Son las {hora_txt}.').format(hora_txt=(self.hora_txt())), True)
+
+    def hon_chavales(self):
+        """Bajar la fama en la calle sin tocar el prestigio ni el empleo: unas horas con los chavales del barrio en la ONG,
+        para que no acaben en la calle. Una vez al día, y sin que te busque la policía (issue 28)."""
+        h, j = self.hon(), self.j
+        if j.reputacion <= 0:
+            return self.decir(tr("En la calle no te conoce nadie: no hay fama que bajar."), True)
+        if h.get("chavales_dia") == self.dia:
+            return self.decir(tr("Hoy ya has estado con los chavales. Vuelve mañana."), True)
+        if j.estrellas:
+            self.app.son("error")
+            return self.decir(tr("Con la policía buscándote, no."), True)
+        h["chavales_dia"] = self.dia
+        horas = AJ.entero("chavales_horas")
+        self.pasar_horas(horas)
+        self.son("lugar_ong", cat="interfaz")
+        j.stats["chavales"] = j.stats.get("chavales", 0) + 1
+        self.decir(AJ.frase("frases_chavales", horas=horas, hora=self.hora_txt()), True)
+        self.cambiar_reputacion(-AJ("chavales_fama"))
+        self.cambiar_ciudadania(AJ("chavales_prestigio"))
 
     def hon_abogado_precio(self, a):
         return AJ.entero("abogado_precio") * a["g"]

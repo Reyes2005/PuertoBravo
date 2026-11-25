@@ -2,7 +2,7 @@
 
 from .i18n import tr
 NOMBRE = tr("Puerto Bravo: Ley del Asfalto")
-VERSION = "1.7.3"
+VERSION = "1.7.5"
 AUTOR = tr("Héctor J. Benítez Corredera")
 ANIO = "2026"
 WEB = "https://github.com/hxebolax/PuertoBravo"
