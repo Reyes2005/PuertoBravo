@@ -1729,11 +1729,11 @@ class VentanaTrampas(wx.Frame):
 
         campos = getattr(self, "_inspector_campos", {}) or {}
         existe = clave in campos
-        if campos and objetivo in ("jugador", "cfg", "vehiculo_actual") and not existe:
+        if campos and not existe:
             if not (objetivo == "vehiculo_actual" and clave in ("vel_max", "acel", "freno", "tono")):
                 self._error_inspector(
-                    f"El campo {clave!r} no existe en {objetivo}. No se modificó ni añadió nada.",
-                    "Campo inexistente en el Inspector",
+                    f"El campo {clave!r} no está disponible en el Inspector de {objetivo}. No se modificó ni añadió nada.",
+                    "Campo no editable en el Inspector",
                     self.txt_insp_clave,
                 )
                 return
@@ -1751,7 +1751,8 @@ class VentanaTrampas(wx.Frame):
             f"Campo {clave} actualizado.",
         )
         if res is not None:
-            self.txt_insp_estado.SetValue(f"Aplicado correctamente: {clave} = {json.dumps(res.get('valor'), ensure_ascii=False)}")
+            aviso_resp = " (copia de seguridad creada)" if res.get("respaldo") else ""
+            self.txt_insp_estado.SetValue(f"Aplicado correctamente: {clave} = {json.dumps(res.get('valor'), ensure_ascii=False)}{aviso_resp}")
             self._leer_inspector()
         elif self._ultimo_error_puente:
             self.txt_insp_estado.SetValue(self._ultimo_error_puente)

@@ -20,6 +20,24 @@ COMANDOS_LECTURA = {"ping", "hola", "catalogos", "estado", "vehiculos.listar", "
 MAX_CONEXIONES = 8
 MAX_COLA = 32
 
+CAMPOS_INSPECTOR_JUGADOR = frozenset({
+    "salud", "salud_max", "blindaje", "dinero", "banco", "foco", "animo", "ciudadania", "reputacion",
+    "hambre", "sed", "sueno", "suciedad", "carne_puntos", "cocina_practica", "estrellas", "puntos_busqueda",
+    "banda", "banda_nombre", "alias", "guardaespaldas", "perro", "perro_hambre", "perro_confianza",
+    "perro_en_casa", "mochila_grande", "objetos", "sustancias", "hab", "rep_bandas", "territorios", "propiedades",
+})
+CAMPOS_INSPECTOR_VEHICULO = frozenset({
+    "nombre", "salud", "salud_max", "vel_max", "acel", "freno", "tono",
+    "litros", "queroseno", "km", "pinchada", "revision_debida", "hostil", "cerrado", "ia", "mio",
+})
+CAMPOS_INSPECTOR_PERSONA = frozenset({
+    "nombre", "salud", "arma", "punteria", "vel", "hostil", "estado", "banda", "agresor", "provocado",
+})
+CAMPOS_INSPECTOR_CFG_EXCLUIDOS = frozenset({
+    "permitir_trampas", "servidores", "teclas", "act_url", "ia_url_otro",
+    "salida_sonido", "salida_extra", "comp_sin_interes",
+})
+
 
 def _json_seguro(val, profundidad: int = 0):
     """Convierte valores arbitrarios a estructuras serializables en JSON sin fallar."""
@@ -599,27 +617,91 @@ def _punto_spawn_vehiculo(p, mo: dict):
     return x, y, d
 
 
-def _validar_integridad_campo(objetivo: str, clave: str, nuevo) -> None:
-    """Comprueba invariantes estructurales de contenedores o rangos críticos antes de escribir."""
+def _respaldar_antes_de_inspector(app, p) -> str | None:
+    """Guarda una copia previa de la partida antes del primer cambio del Inspector en la sesión."""
+    if getattr(p, "_respaldo_inspector_hecho", False):
+        return getattr(p, "_respaldo_inspector_ruta", None)
+    from juego import cifrado, rutas
+
+    datos = p.a_dict()
+    p._respaldo_inspector = datos
+    ruta = getattr(p, "_ruta_respaldo_inspector", None)
+    if ruta is None and not getattr(app, "pruebas", False):
+        ruta = os.path.join(rutas.carpeta_data("partidas"), "respaldo_antes_trampas.json")
+    if ruta:
+        try:
+            carp = os.path.dirname(ruta)
+            if carp:
+                os.makedirs(carp, exist_ok=True)
+            cifrado.escribir_json(ruta, datos)
+            p._respaldo_inspector_ruta = ruta
+        except OSError:
+            ruta = None
+    p._respaldo_inspector_hecho = True
+    return ruta
+
+
+def _validar_integridad_campo(objetivo: str, clave: str, nuevo, partida=None) -> None:
+    """Comprueba invariantes estructurales y rangos seguros antes de escribir desde el Inspector."""
     if objetivo == "jugador":
-        if clave == "armas":
-            if not isinstance(nuevo, dict) or not all(isinstance(k, str) and k and isinstance(v, dict) for k, v in nuevo.items()):
-                raise ValueError("Formato inválido en 'armas': cada arma debe ser un objeto JSON con clave no vacía. No se modificó nada.")
-        elif clave in ("objetos", "sustancias", "hab", "rep_bandas"):
+        if clave in ("objetos", "sustancias", "hab", "rep_bandas"):
             if not isinstance(nuevo, dict) or not all(
                 isinstance(k, str) and k and isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(float(v))
                 for k, v in nuevo.items()
             ):
                 raise ValueError(f"Formato inválido en '{clave}': todas las cantidades deben ser números finitos. No se modificó nada.")
-        elif clave == "mochila":
-            if not isinstance(nuevo, list) or not all(isinstance(x, dict) for x in nuevo):
-                raise ValueError("Formato inválido en 'mochila': debe ser una lista de diccionarios. No se modificó nada.")
+        elif clave in ("territorios", "propiedades"):
+            if not isinstance(nuevo, list) or not all(isinstance(x, str) and x for x in nuevo):
+                raise ValueError(f"Formato inválido en '{clave}': debe ser una lista de identificadores de texto. No se modificó nada.")
         elif clave in ("salud", "salud_max"):
             if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) <= 0:
                 raise ValueError(f"'{clave}' debe ser un número positivo mayor que 0. No se modificó nada.")
-        elif clave in ("dinero", "banco"):
+        elif clave in ("dinero", "banco", "banda", "guardaespaldas"):
             if not isinstance(nuevo, int) or isinstance(nuevo, bool) or nuevo < 0:
                 raise ValueError(f"'{clave}' debe ser un número entero mayor o igual a 0. No se modificó nada.")
+        elif clave == "estrellas":
+            if not isinstance(nuevo, int) or isinstance(nuevo, bool) or not (0 <= nuevo <= 5):
+                raise ValueError("'estrellas' debe estar entre 0 y 5. No se modificó nada.")
+        elif clave == "carne_puntos":
+            if not isinstance(nuevo, int) or isinstance(nuevo, bool) or not (0 <= nuevo <= 12):
+                raise ValueError("'carne_puntos' debe estar entre 0 y 12. No se modificó nada.")
+        elif clave in ("foco", "animo", "ciudadania", "reputacion", "hambre", "sed", "sueno", "suciedad", "cocina_practica", "perro_hambre", "perro_confianza"):
+            if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or not (0.0 <= float(nuevo) <= 100.0):
+                raise ValueError(f"'{clave}' debe estar entre 0 y 100. No se modificó nada.")
+        elif clave == "puntos_busqueda":
+            if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) < 0.0:
+                raise ValueError("'puntos_busqueda' debe ser mayor o igual a 0. No se modificó nada.")
+    elif objetivo == "stats":
+        if clave == "carreras":
+            if not isinstance(nuevo, list) or not all(isinstance(x, str) for x in nuevo):
+                raise ValueError("'stats.carreras' debe ser una lista de identificadores de texto. No se modificó nada.")
+        elif not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) < 0.0:
+            raise ValueError(f"'stats.{clave}' debe ser un número finito mayor o igual a 0. No se modificó nada.")
+    elif objetivo == "vehiculo":
+        if clave in ("vel_max", "acel", "freno", "salud_max", "tono"):
+            if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) <= 0.0:
+                raise ValueError(f"'{clave}' debe ser un número positivo mayor que 0. No se modificó nada.")
+        elif clave in ("salud", "km", "litros", "queroseno") and nuevo is not None:
+            if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) < 0.0:
+                raise ValueError(f"'{clave}' debe ser mayor o igual a 0. No se modificó nada.")
+        elif clave == "nombre":
+            if not isinstance(nuevo, str) or not nuevo.strip():
+                raise ValueError("El nombre del vehículo no puede quedar vacío. No se modificó nada.")
+    elif objetivo == "persona":
+        if clave == "salud":
+            if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) < 0.0:
+                raise ValueError("'salud' debe ser mayor o igual a 0. No se modificó nada.")
+        elif clave == "vel":
+            if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or float(nuevo) <= 0.0:
+                raise ValueError("'vel' debe ser mayor que 0. No se modificó nada.")
+        elif clave == "punteria":
+            if not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or not math.isfinite(float(nuevo)) or not (0.0 <= float(nuevo) <= 1.0):
+                raise ValueError("'punteria' debe estar entre 0.0 y 1.0. No se modificó nada.")
+        elif clave == "arma" and nuevo is not None and partida is not None and nuevo not in partida.armas_d:
+            raise ValueError(f"Arma desconocida en el catálogo: {nuevo}. No se modificó nada.")
+        elif clave == "nombre":
+            if not isinstance(nuevo, str) or not nuevo.strip():
+                raise ValueError("El nombre de la persona no puede quedar vacío. No se modificó nada.")
 
 
 def despachar(app, cmd: str, args: dict | None = None):
@@ -632,7 +714,7 @@ def despachar(app, cmd: str, args: dict | None = None):
         raise ValueError("Comunicación anulada: modo multijugador activo.")
     args = args or {}
     from juego import VERSION, azar, config, gente, mochila, sistemas
-    from juego.entidades import Objeto, Persona, Vehiculo
+    from juego.entidades import Jugador, Objeto, Persona, Vehiculo
 
     p = getattr(app, "partida", None)
 
@@ -696,22 +778,32 @@ def despachar(app, cmd: str, args: dict | None = None):
         objetivo = args.get("objetivo", "jugador")
         if objetivo == "jugador":
             d = p.j.a_dict()
-            return {"objetivo": objetivo, "campos": _json_seguro(d)}
+            seguros = {k: d[k] for k in sorted(CAMPOS_INSPECTOR_JUGADOR) if k in d}
+            return {"objetivo": objetivo, "campos": _json_seguro(seguros)}
         if objetivo == "stats":
-            return {"objetivo": objetivo, "campos": _json_seguro(p.j.stats)}
+            claves_stats = Jugador().stats
+            seguros = {k: p.j.stats[k] for k in claves_stats if k in p.j.stats}
+            return {"objetivo": objetivo, "campos": _json_seguro(seguros)}
         if objetivo == "cfg":
-            return {"objetivo": objetivo, "campos": _json_seguro(app.cfg.v)}
+            seguros = {k: val for k, val in app.cfg.v.items() if k not in CAMPOS_INSPECTOR_CFG_EXCLUIDOS}
+            return {"objetivo": objetivo, "campos": _json_seguro(seguros)}
         if objetivo in ("vehiculo", "vehiculo_actual"):
             v = _buscar_vehiculo(p, args.get("id"))
             if v is None:
                 raise ValueError("Vehículo no encontrado.")
-            campos = {k: val for k, val in v.__dict__.items() if k not in ("canal", "sirena", "alarma", "fuego", "pasajeros")}
+            campos = {}
+            for k in sorted(CAMPOS_INSPECTOR_VEHICULO):
+                if hasattr(v, k):
+                    campos[k] = getattr(v, k)
+                elif isinstance(getattr(v, "modelo", None), dict) and k in v.modelo:
+                    campos[k] = v.modelo[k]
             return {"objetivo": "vehiculo", "id": v.id, "campos": _json_seguro(campos)}
         if objetivo == "persona":
             per = _buscar_persona(p, args.get("id"))
             if per is None:
                 raise ValueError("Persona no encontrada.")
-            return {"objetivo": "persona", "id": per.id, "campos": _json_seguro(per.__dict__)}
+            campos = {k: getattr(per, k) for k in sorted(CAMPOS_INSPECTOR_PERSONA) if hasattr(per, k)}
+            return {"objetivo": "persona", "id": per.id, "campos": _json_seguro(campos)}
         raise ValueError(f"Objetivo de inspector no soportado: {objetivo}")
 
     # A partir de aquí, todo son comandos de escritura en la partida
@@ -721,54 +813,68 @@ def despachar(app, cmd: str, args: dict | None = None):
     j = p.j
 
     if cmd == "inspector.escribir":
+        from juego.entidades import Jugador as _JugadorDef
+
         objetivo = args.get("objetivo", "jugador")
         clave = validar_clave_inspector(str(objetivo), str(args.get("clave", "")))
         valor = args.get("valor")
         if objetivo == "jugador":
-            if not hasattr(j, clave) or clave in ("veh",) or callable(getattr(j, clave)):
-                raise ValueError(f"Atributo inexistente o protegido en Jugador: {clave}. No se modificó ni añadió nada.")
+            if clave not in CAMPOS_INSPECTOR_JUGADOR or not hasattr(j, clave) or callable(getattr(j, clave)):
+                raise ValueError(f"Campo no editable desde el Inspector por seguridad de la partida: {clave}. No se modificó ni añadió nada.")
             actual = getattr(j, clave)
             nuevo = parsear_valor_inspector(valor, actual, es_nuevo=False, objetivo="jugador")
-            _validar_integridad_campo("jugador", clave, nuevo)
+            _validar_integridad_campo("jugador", clave, nuevo, p)
+            ruta_respaldo = _respaldar_antes_de_inspector(app, p)
             setattr(j, clave, nuevo)
         elif objetivo == "stats":
-            existe = clave in j.stats
-            actual = j.stats.get(clave)
-            nuevo = parsear_valor_inspector(valor, actual if existe else None, es_nuevo=not existe, objetivo="stats")
+            stats_def = _JugadorDef().stats
+            if clave not in stats_def:
+                raise ValueError(f"Estadística no permitida en el Inspector ({clave}): solo se admiten claves registradas. No se modificó ni añadió nada.")
+            ref = j.stats.get(clave, stats_def[clave])
+            nuevo = parsear_valor_inspector(valor, ref, es_nuevo=False, objetivo="stats")
+            _validar_integridad_campo("stats", clave, nuevo, p)
+            ruta_respaldo = _respaldar_antes_de_inspector(app, p)
             j.stats[clave] = nuevo
         elif objetivo == "cfg":
+            if clave in CAMPOS_INSPECTOR_CFG_EXCLUIDOS:
+                raise ValueError(f"Opción protegida en el Inspector: {clave}. No se modificó nada.")
             res_cfg = despachar(app, "cfg.set", {"clave": clave, "valor": valor})
-            return {"ok": True, "clave": clave, "valor": _json_seguro(res_cfg["aplicados"][clave])}
+            ruta_respaldo = _respaldar_antes_de_inspector(app, p)
+            return {"ok": True, "clave": clave, "valor": _json_seguro(res_cfg["aplicados"][clave]), "respaldo": ruta_respaldo}
         elif objetivo in ("vehiculo", "vehiculo_actual"):
             v = _buscar_vehiculo(p, args.get("id"))
             if v is None:
                 raise ValueError("Vehículo no encontrado. No se modificó nada.")
-            if clave in ("canal", "sirena", "alarma", "fuego", "pasajeros", "modelo"):
-                raise ValueError(f"Campo protegido en vehículo: {clave}. No se modificó nada.")
+            if clave not in CAMPOS_INSPECTOR_VEHICULO:
+                raise ValueError(f"Campo de vehículo no editable desde el Inspector: {clave}. No se modificó ni añadió nada.")
             if clave in ("vel_max", "acel", "freno", "tono") and not hasattr(v, clave):
                 nuevo = parsear_valor_inspector(valor, v.modelo.get(clave), es_nuevo=False, objetivo="vehiculo")
-                if clave in ("vel_max", "acel", "freno") and (not isinstance(nuevo, (int, float)) or isinstance(nuevo, bool) or float(nuevo) <= 0):
-                    raise ValueError(f"'{clave}' debe ser un número positivo mayor que 0. No se modificó nada.")
+                _validar_integridad_campo("vehiculo", clave, nuevo, p)
+                ruta_respaldo = _respaldar_antes_de_inspector(app, p)
                 _asegurar_modelo_propio(p, v)
                 v.modelo[clave] = nuevo
             else:
                 if not hasattr(v, clave) or callable(getattr(v, clave)):
-                    raise ValueError(f"Atributo inexistente o protegido en Vehículo: {clave}. No se modificó ni añadió nada.")
+                    raise ValueError(f"Atributo inexistente en Vehículo: {clave}. No se modificó ni añadió nada.")
                 actual = getattr(v, clave)
                 nuevo = parsear_valor_inspector(valor, actual, es_nuevo=False, objetivo="vehiculo")
+                _validar_integridad_campo("vehiculo", clave, nuevo, p)
+                ruta_respaldo = _respaldar_antes_de_inspector(app, p)
                 setattr(v, clave, nuevo)
         elif objetivo == "persona":
             per = _buscar_persona(p, args.get("id"))
             if per is None:
                 raise ValueError("Persona no encontrada. No se modificó nada.")
-            if not hasattr(per, clave) or callable(getattr(per, clave)):
-                raise ValueError(f"Atributo inexistente o protegido en Persona: {clave}. No se modificó ni añadió nada.")
+            if clave not in CAMPOS_INSPECTOR_PERSONA or not hasattr(per, clave) or callable(getattr(per, clave)):
+                raise ValueError(f"Campo de persona no editable desde el Inspector: {clave}. No se modificó ni añadió nada.")
             actual = getattr(per, clave)
             nuevo = parsear_valor_inspector(valor, actual, es_nuevo=False, objetivo="persona")
+            _validar_integridad_campo("persona", clave, nuevo, p)
+            ruta_respaldo = _respaldar_antes_de_inspector(app, p)
             setattr(per, clave, nuevo)
         else:
             raise ValueError(f"Objetivo no soportado: {objetivo}. No se modificó ni añadió nada.")
-        return {"ok": True, "clave": clave, "valor": _json_seguro(nuevo)}
+        return {"ok": True, "clave": clave, "valor": _json_seguro(nuevo), "respaldo": ruta_respaldo}
 
     if cmd == "jugador.set":
         accion = args.get("accion")

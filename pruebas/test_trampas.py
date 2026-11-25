@@ -269,12 +269,29 @@ def test_policia_y_eventos(puente_activo):
     assert tiempo["dia"] == 5 and tiempo["lluvia"] is True and tiempo["dia_azar"]["id"] == "fiesta"
 
 
-def test_inspector_generico(puente_activo):
+def test_inspector_generico(puente_activo, tmp_path):
+    from juego import cifrado
+    from juego.entidades import Jugador
+
     robot, p, _, cli, _, _ = puente_activo
-    _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="jugador", clave="alias", valor="El Jefe")
+    respaldo_ruta = tmp_path / "respaldo_antes_trampas.json"
+    p._ruta_respaldo_inspector = str(respaldo_ruta)
+
+    res = _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="jugador", clave="alias", valor="El Jefe")
     assert p.j.alias == "El Jefe"
+    assert respaldo_ruta.exists()
+    assert res["respaldo"] == str(respaldo_ruta)
+    copia = cifrado.leer_json(str(respaldo_ruta))
+    assert copia["jugador"]["alias"] == ""
+
     campos = _llamar_vivo(robot.app, cli, "inspector.leer", objetivo="jugador")["campos"]
     assert campos["alias"] == "El Jefe"
+    assert "bolsa" not in campos and "reconquista" not in campos and "contrato" not in campos
+
+    # Comprobar que el jugador tras ediciones sigue cargando sin errores en Jugador.de_dict
+    j2 = Jugador()
+    j2.de_dict(p.j.a_dict())
+    assert j2.alias == "El Jefe"
 
 
 def test_anulacion_total_multijugador(puente_activo, tmp_path):
@@ -402,23 +419,30 @@ def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch
         ("jugador", "objetos", '{"botiquin": 5,'),
         ("jugador", "objetos", "{'botiquin': 5}"),
         ("jugador", "objetos", '{"botiquin": "muchos"}'),
-        ("jugador", "armas", '{"pistola": 123}'),
+        ("jugador", "armas", '{"pistola": {}}'),  # excluido de lista blanca para proteger partida
+        ("jugador", "bolsa", '{"bravo": 5}'),
+        ("jugador", "reconquista", "{}"),
+        ("jugador", "contrato", "{}"),
         ("jugador", "salud", "NaN"),
         ("jugador", "salud", "inf"),
         ("jugador", "salud", "0"),
         ("jugador", "dinero", "12.5"),
         ("jugador", "dinero", "-10"),
+        ("jugador", "estrellas", "9"),
+        ("jugador", "animo", "200"),
         ("jugador", "atributo_inventado", "123"),
         ("jugador", "_oculto", "1"),
         ("stats", "nueva_stat", "[1, 2,"),
-        ("stats", "nueva_stat", "texto sin comillas"),
-        ("stats", "nueva_stat", ""),
-        ("stats", "nueva_stat", "NaN"),
+        ("stats", "nueva_stat", "42"),  # claves inventadas rechazadas
+        ("stats", "enemigos", "-5"),
+        ("stats", "carreras", "[123]"),
         ("vehiculo_actual", "vel_max", "abc"),
         ("vehiculo_actual", "vel_max", "-5"),
         ("vehiculo_actual", "campo_inexistente", "42"),
         ("persona", "campo_inexistente", "99"),
+        ("persona", "punteria", "2.5"),
         ("cfg", "opcion_inexistente", "true"),
+        ("cfg", "servidores", "[]"),
     ]
     for objetivo, clave, valor in casos_invalidos:
         extra = {"id": per.id} if objetivo == "persona" else ({"id": veh.id} if objetivo == "vehiculo_actual" else {})
@@ -426,7 +450,7 @@ def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch
             _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo=objetivo, clave=clave, valor=valor, **extra)
         assert exc_info.value
 
-    # Verificación estricta: ningún error de sintaxis o validación modificó ni añadió nada
+    # Verificación estricta: ningún error de sintaxis o validación modificó ni añadió nada ni creó respaldo aún
     assert p.j.dinero == dinero_orig
     assert p.j.salud == salud_orig
     assert p.j.objetos == objetos_orig
@@ -440,12 +464,14 @@ def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch
     assert per.salud == per_salud_orig
     assert not hasattr(per, "campo_inexistente")
     assert robot.app.cfg.v == cfg_orig
+    assert getattr(p, "_respaldo_inspector_hecho", False) is False
 
-    # Una escritura válida en stats y en objetos sí funciona
-    res_stat = _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="stats", clave="nueva_stat", valor="42")
-    assert res_stat["ok"] is True and p.j.stats["nueva_stat"] == 42
+    # Una escritura válida en stats permitidos y en objetos sí funciona
+    res_stat = _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="stats", clave="enemigos", valor="42")
+    assert res_stat["ok"] is True and p.j.stats["enemigos"] == 42
     res_obj = _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="jugador", clave="objetos", valor='{"botiquin": 4}')
     assert res_obj["ok"] is True and p.j.objetos == {"botiquin": 4}
+    assert getattr(p, "_respaldo_inspector_hecho", False) is True
 
     # También desde la GUI wx: bloquea localmente errores de sintaxis, informa al usuario y no altera el juego
     wx = pytest.importorskip("wx")
@@ -474,7 +500,7 @@ def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch
         v._leer_inspector()
         stats_antes = dict(p.j.stats)
 
-        v.txt_insp_clave.SetValue("stat_rota")
+        v.txt_insp_clave.SetValue("enemigos")
         v.txt_insp_valor.SetValue('{"x": [1, 2')
         v._escribir_inspector()
 
@@ -484,7 +510,6 @@ def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch
         assert v.txt_insp_estado.GetValue() == errores_gui[0][1]
         assert v.txt_insp_valor.GetValue() == '{"x": [1, 2'
         assert {k: val for k, val in p.j.stats.items() if k != "tiempo"} == {k: val for k, val in stats_antes.items() if k != "tiempo"}
-        assert "stat_rota" not in p.j.stats
     finally:
         parar.set()
         hilo.join(timeout=1.0)
@@ -725,74 +750,70 @@ def test_servidor_real_tcp_transmision_y_restricciones(tmp_path):
         banco.parar()
 
 
-def test_inspector_y_cfg_atomicidad_exhaustiva(puente_activo):
-    robot, p, _, cli, _, _ = puente_activo
-    _llamar_vivo(robot.app, cli, "npcs.crear", modo="aliado", cantidad=1)
-    if not p.vehiculos:
-        _llamar_vivo(robot.app, cli, "vehiculos.crear", modelo_id="sedan", hacer_mio=True, subir_ahora=False)
-    per = p.personas[0]
-    veh = p.vehiculos[0]
+def test_inspector_y_cfg_atomicidad_exhaustiva(robot, tmp_path):
+    p = robot.nueva_partida()
+    puente.iniciar(robot.app, forzar=True, carpeta=str(tmp_path))
+    try:
+        puente.despachar(robot.app, "npcs.crear", {"modo": "aliado", "cantidad": 1})
+        if not p.vehiculos:
+            puente.despachar(robot.app, "vehiculos.crear", {"modelo_id": "sedan", "hacer_mio": True, "subir_ahora": False})
+        per = p.personas[0]
+        veh = p.vehiculos[0]
 
-    dinero_orig = p.j.dinero
-    salud_orig = p.j.salud
-    objetos_orig = dict(p.j.objetos)
-    armas_orig = dict(p.j.armas)
-    mochila_orig = list(p.j.mochila)
-    stats_orig = {k: v for k, v in p.j.stats.items() if k != "tiempo"}
-    cfg_orig = dict(robot.app.cfg.v)
-    per_dict_orig = dict(per.__dict__)
-    veh_dict_orig = {k: v for k, v in veh.__dict__.items() if k != "modelo"}
-    modelo_ref = veh.modelo
+        dinero_orig = p.j.dinero
+        salud_orig = p.j.salud
+        objetos_orig = dict(p.j.objetos)
+        armas_orig = dict(p.j.armas)
+        mochila_orig = list(p.j.mochila)
+        stats_orig = dict(p.j.stats)
+        cfg_orig = dict(robot.app.cfg.v)
+        per_dict_orig = dict(per.__dict__)
+        veh_dict_orig = {k: v for k, v in veh.__dict__.items() if k != "modelo"}
+        modelo_ref = veh.modelo
 
-    fallos = [
-        ("jugador", "objetos", '{"botiquin": NaN}'),
-        ("jugador", "objetos", '{"botiquin": 5,}'),
-        ("jugador", "objetos", '{"botiquin": true}'),
-        ("jugador", "mochila", "[1, 2, ]"),
-        ("jugador", "mochila", "[123]"),
-        ("jugador", "armas", '{"": {}}'),
-        ("jugador", "dinero", True),
-        ("jugador", "salud", False),
-        ("jugador", "salud", "-10"),
-        ("jugador", "a_dict", "1"),
-        ("jugador", "dinero\n", "10"),
-        ("jugador", "x" * 81, "10"),
-        ("jugador", "perro", "abc\x00def"),
-        ("stats", "nueva_inf", "[1, Infinity]"),
-        ("stats", "clave\tTab", "5"),
-        ("vehiculo_actual", "modelo", "{}"),
-        ("vehiculo_actual", "canal", "1"),
-        ("vehiculo_actual", "pasajeros", "[]"),
-        ("persona", "dist", "0"),
-    ]
-    for objetivo, clave, valor in fallos:
-        extra = {"id": per.id} if objetivo == "persona" else ({"id": veh.id} if objetivo == "vehiculo_actual" else {})
-        with pytest.raises(ErrorPuente, match="."):
-            _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo=objetivo, clave=clave, valor=valor, **extra)
+        fallos = [
+            ("jugador", "objetos", '{"botiquin": NaN}'),
+            ("jugador", "objetos", '{"botiquin": 5,}'),
+            ("jugador", "objetos", '{"botiquin": true}'),
+            ("jugador", "mochila", "[1, 2, ]"),
+            ("jugador", "bolsa", '{"algo": 1}'),
+            ("jugador", "dinero", True),
+            ("jugador", "salud", False),
+            ("jugador", "salud", "-10"),
+            ("jugador", "a_dict", "1"),
+            ("jugador", "dinero\n", "10"),
+            ("jugador", "x" * 81, "10"),
+            ("jugador", "perro", "abc\x00def"),
+            ("stats", "nueva_inf", "[1, Infinity]"),
+            ("stats", "clave\tTab", "5"),
+            ("stats", "enemigos", "-1"),
+            ("vehiculo_actual", "modelo", "{}"),
+            ("vehiculo_actual", "canal", "1"),
+            ("vehiculo_actual", "pasajeros", "[]"),
+            ("persona", "dist", "0"),
+        ]
+        for objetivo, clave, valor in fallos:
+            extra = {"id": per.id} if objetivo == "persona" else ({"id": veh.id} if objetivo == "vehiculo_actual" else {})
+            with pytest.raises(ValueError, match="."):
+                puente.despachar(robot.app, "inspector.escribir", {"objetivo": objetivo, "clave": clave, "valor": valor, **extra})
 
-    # Atomicidad estricta en cfg.set: si una clave falla, ninguna del lote se aplica
-    fuego_antes = robot.app.cfg["fuego_amigo"]
-    with pytest.raises(ErrorPuente):
-        _llamar_vivo(robot.app, cli, "cfg.set", cambios={"fuego_amigo": not fuego_antes, "inexistente": 1})
-    with pytest.raises(ErrorPuente):
-        _llamar_vivo(robot.app, cli, "cfg.set", cambios={"fuego_amigo": not fuego_antes, "velocidad_voz": "no_numero"})
+        # Atomicidad estricta en cfg.set: si una clave falla, ninguna del lote se aplica
+        fuego_antes = robot.app.cfg["fuego_amigo"]
+        with pytest.raises(ValueError):
+            puente.despachar(robot.app, "cfg.set", {"cambios": {"fuego_amigo": not fuego_antes, "inexistente": 1}})
+        with pytest.raises(ValueError):
+            puente.despachar(robot.app, "cfg.set", {"cambios": {"fuego_amigo": not fuego_antes, "velocidad_voz": "no_numero"}})
 
-    assert p.j.dinero == dinero_orig
-    assert p.j.salud == salud_orig
-    assert p.j.objetos == objetos_orig
-    assert p.j.armas == armas_orig
-    assert p.j.mochila == mochila_orig
-    assert {k: v for k, v in p.j.stats.items() if k != "tiempo"} == stats_orig
-    assert "nueva_inf" not in p.j.stats
-    assert robot.app.cfg.v == cfg_orig
-    assert robot.app.cfg["fuego_amigo"] == fuego_antes
-    assert set(per.__dict__.keys()) == set(per_dict_orig.keys())
-    ignorados_mov = {"x", "y", "rumbo", "vx", "vy"}
-    assert {k: v for k, v in per.__dict__.items() if not k.startswith("t_") and k not in ignorados_mov} == {
-        k: v for k, v in per_dict_orig.items() if not k.startswith("t_") and k not in ignorados_mov
-    }
-    assert set(veh.__dict__.keys()) == set(veh_dict_orig.keys()) | {"modelo"}
-    assert {k: v for k, v in veh.__dict__.items() if k != "modelo" and not k.startswith("t_") and k not in ignorados_mov} == {
-        k: v for k, v in veh_dict_orig.items() if not k.startswith("t_") and k not in ignorados_mov
-    }
-    assert veh.modelo is modelo_ref
+        assert p.j.dinero == dinero_orig
+        assert p.j.salud == salud_orig
+        assert p.j.objetos == objetos_orig
+        assert p.j.armas == armas_orig
+        assert p.j.mochila == mochila_orig
+        assert p.j.stats == stats_orig
+        assert robot.app.cfg.v == cfg_orig
+        assert robot.app.cfg["fuego_amigo"] == fuego_antes
+        assert per.__dict__ == per_dict_orig
+        assert {k: v for k, v in veh.__dict__.items() if k != "modelo"} == veh_dict_orig
+        assert veh.modelo is modelo_ref
+    finally:
+        puente.detener(robot.app)
