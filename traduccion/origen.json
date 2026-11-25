@@ -1510,6 +1510,10 @@
 "trampas/ventana.py"
 ],
 "&2 Conectar": [
+"trampas/ventana.py",
+"trampas/ventana.py"
+],
+"&2 Desconectar": [
 "trampas/ventana.py"
 ],
 "&3 Actualizar (F5)": [
@@ -7274,6 +7278,7 @@
 "editor/ventana.py"
 ],
 "Busca y conecta con el proceso de Puerto Bravo seleccionado.": [
+"trampas/ventana.py",
 "trampas/ventana.py"
 ],
 "Buscador de tesoros": [
@@ -9109,6 +9114,9 @@
 ],
 "Cierra esta ventana.": [
 "editor/accesibilidad/ayuda.py"
+],
+"Cierra la conexión actual con Puerto Bravo.": [
+"trampas/ventana.py"
 ],
 "Cierra la ventana sin guardar los cambios.": [
 "editor/accesibilidad/ayuda.py"
@@ -13468,6 +13476,9 @@
 "juego/vuelo.py"
 ],
 "Desconectado ({exc}). En multijugador el puente se anula salvo que el dueño del servidor habilite permitir_trampas.": [
+"trampas/ventana.py"
+],
+"Desconectado. Pulsa Conectar cuando quieras volver a enlazar con Puerto Bravo.": [
 "trampas/ventana.py"
 ],
 "Desconectarme": [
@@ -51587,6 +51598,9 @@
 ],
 "Ya estás bajando.": [
 "juego/vuelo.py"
+],
+"Ya estás conectado con Puerto Bravo. Pulsa Desconectar si quieres cerrar la conexión actual.": [
+"trampas/ventana.py"
 ],
 "Ya estás en el sitio: no hace falta acercarse más. Sin bajarte del vehículo, pulsa Intro para tomar la carretera{a}.": [
 "juego/partida.py"
