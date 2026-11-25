@@ -125,9 +125,9 @@ def test_puente_limite_conexiones_simultaneas(robot, tmp_path, monkeypatch):
     puente.detener(robot.app)
 
 
-def test_catalogos_dinamicos(puente_activo):
-    robot, p, _, cli, _, _ = puente_activo
-    cat = _llamar_vivo(robot.app, cli, "catalogos")
+def test_catalogos_dinamicos(robot):
+    robot.nueva_partida()
+    cat = puente.despachar(robot.app, "catalogos", {})
     assert len(cat["vehiculos"]) >= 39
     assert len(cat["armas"]) >= 28
     assert len(cat["tipos_enemigo"]) >= 10
@@ -139,152 +139,161 @@ def test_catalogos_dinamicos(puente_activo):
     assert len(cat["dias_azar"]) >= 5
 
 
-def test_jugador_habilidades_y_teletransporte(puente_activo):
-    robot, p, _, cli, _, _ = puente_activo
-    res = _llamar_vivo(
-        robot.app, cli, "jugador.set",
-        dinero_delta=5000, banco=12000, salud_max=150, salud=140, blindaje=90,
-        hambre=80, sed=70, sueno=60, suciedad=50, carne_puntos=7,
+def test_jugador_habilidades_y_teletransporte(robot):
+    p = robot.nueva_partida()
+    res = puente.despachar(
+        robot.app, "jugador.set",
+        {
+            "dinero_delta": 5000, "banco": 12000, "salud_max": 150, "salud": 140, "blindaje": 90,
+            "hambre": 80, "sed": 70, "sueno": 60, "suciedad": 50, "carne_puntos": 7,
+        },
     )
     assert res["jugador"]["dinero"] == 5050
     assert res["jugador"]["banco"] == 12000
     assert res["jugador"]["salud"] == 140.0
     assert p.j.carne_puntos == 7
 
-    _llamar_vivo(robot.app, cli, "jugador.set", accion="llenar_necesidades")
+    puente.despachar(robot.app, "jugador.set", {"accion": "llenar_necesidades"})
     assert p.j.hambre == 0.0 and p.j.sed == 0.0 and p.j.sueno == 0.0 and p.j.suciedad == 0.0
 
-    hab = _llamar_vivo(robot.app, cli, "jugador.habilidad", habilidad="conduccion", nivel=8)
+    hab = puente.despachar(robot.app, "jugador.habilidad", {"habilidad": "conduccion", "nivel": 8})
     assert hab["nivel"] == 8 and p.nivel("conduccion") == 8
 
     # Teletransporte a otra localidad
     san_lugar = next(l for l in p.lugares.values() if l.mapa == "san_lucero")
-    tp = _llamar_vivo(robot.app, cli, "jugador.teletransportar", lugar_id=san_lugar.id)
+    tp = puente.despachar(robot.app, "jugador.teletransportar", {"lugar_id": san_lugar.id})
     assert tp["mapa"] == "san_lucero"
     assert p.mundo.id == "san_lucero"
 
 
-def test_inventario_completo(puente_activo):
-    robot, p, _, cli, _, _ = puente_activo
-    _llamar_vivo(robot.app, cli, "inventario.arma", accion="dar", arma_id="fusil", balas=400, silenciador=True, ampliado=True)
+def test_inventario_completo(robot):
+    p = robot.nueva_partida()
+    puente.despachar(
+        robot.app, "inventario.arma",
+        {"accion": "dar", "arma_id": "fusil", "balas": 400, "silenciador": True, "ampliado": True},
+    )
     assert "fusil" in p.j.armas
     assert p.j.armas["fusil"]["silenciador"] is True
     assert p.j.armas["fusil"]["ampliado"] is True
     assert p.j.arma == "fusil"
 
-    _llamar_vivo(robot.app, cli, "inventario.arma", accion="quitar", arma_id="fusil")
+    puente.despachar(robot.app, "inventario.arma", {"accion": "quitar", "arma_id": "fusil"})
     assert "fusil" not in p.j.armas
     assert p.j.arma == "punos"
 
-    _llamar_vivo(robot.app, cli, "inventario.objeto", tipo="objeto", id="botiquin", cantidad=5)
+    puente.despachar(robot.app, "inventario.objeto", {"tipo": "objeto", "id": "botiquin", "cantidad": 5})
     assert p.j.objetos["botiquin"] >= 6
 
-    _llamar_vivo(robot.app, cli, "inventario.objeto", tipo="mochila_grande", valor=True)
+    puente.despachar(robot.app, "inventario.objeto", {"tipo": "mochila_grande", "valor": True})
     assert p.j.mochila_grande is True
 
-    _llamar_vivo(robot.app, cli, "inventario.objeto", tipo="valor", id="dron", cantidad=1, robado=True)
+    puente.despachar(robot.app, "inventario.objeto", {"tipo": "valor", "id": "dron", "cantidad": 1, "robado": True})
     assert any(x["id"] == "dron" and x["robado"] for x in p.j.mochila)
 
-    _llamar_vivo(robot.app, cli, "inventario.objeto", tipo="vaciar_robados")
+    puente.despachar(robot.app, "inventario.objeto", {"tipo": "vaciar_robados"})
     assert all(not x["robado"] for x in p.j.mochila)
 
 
-def test_vehiculos_crear_y_editar_aislado(puente_activo):
-    robot, p, _, cli, _, _ = puente_activo
+def test_vehiculos_crear_y_editar_aislado(robot):
+    p = robot.nueva_partida()
     vel_proto_original = p.modelos["sedan"]["vel_max"]
 
-    c1 = _llamar_vivo(
-        robot.app, cli, "vehiculos.crear",
-        modelo_id="sedan", nombre="Mi Rayo", hacer_mio=True, subir_ahora=True, mejoras_max=True,
+    c1 = puente.despachar(
+        robot.app, "vehiculos.crear",
+        {"modelo_id": "sedan", "nombre": "Mi Rayo", "hacer_mio": True, "subir_ahora": True, "mejoras_max": True},
     )["vehiculo"]
     assert p.j.veh is not None and p.j.veh.id == c1["id"]
     assert p.j.veh.mio is True
 
     # Crear un segundo sedan distinto para verificar aislamiento al editar solo este ejemplar
-    c2 = _llamar_vivo(
-        robot.app, cli, "vehiculos.crear",
-        modelo_id="sedan", hacer_mio=False, subir_ahora=False,
+    c2 = puente.despachar(
+        robot.app, "vehiculos.crear",
+        {"modelo_id": "sedan", "hacer_mio": False, "subir_ahora": False},
     )["vehiculo"]
 
-    edit = _llamar_vivo(
-        robot.app, cli, "vehiculos.editar",
-        id=c1["id"], solo_este=True, reparar=True, llenar_combustible=True,
-        specs={"vel_max": 95.0, "acel": 30.0, "freno": 40.0},
+    edit = puente.despachar(
+        robot.app, "vehiculos.editar",
+        {
+            "id": c1["id"], "solo_este": True, "reparar": True, "llenar_combustible": True,
+            "specs": {"vel_max": 95.0, "acel": 30.0, "freno": 40.0},
+        },
     )["vehiculo"]
     assert edit["vel_max"] == 95.0
     assert p.modelos["sedan"]["vel_max"] == vel_proto_original
     v2 = next(v for v in p.vehiculos if v.id == c2["id"])
     assert v2.modelo["vel_max"] == vel_proto_original
 
-    _llamar_vivo(robot.app, cli, "vehiculos.accion", id=c2["id"], accion="eliminar")
+    puente.despachar(robot.app, "vehiculos.accion", {"id": c2["id"], "accion": "eliminar"})
     assert all(v.id != c2["id"] for v in p.vehiculos)
 
 
-def test_npcs_y_bandas(puente_activo):
-    robot, p, _, cli, _, _ = puente_activo
-    cre = _llamar_vivo(
-        robot.app, cli, "npcs.crear",
-        modo="pandillero", clase="pandillero_duro", banda="Los Calaveras",
-        arma="escopeta", cantidad=2, salud=120, hostil=True, en_vehiculo=False,
+def test_npcs_y_bandas(robot):
+    p = robot.nueva_partida()
+    cre = puente.despachar(
+        robot.app, "npcs.crear",
+        {
+            "modo": "pandillero", "clase": "pandillero_duro", "banda": "Los Calaveras",
+            "arma": "escopeta", "cantidad": 2, "salud": 120, "hostil": True, "en_vehiculo": False,
+        },
     )
     ids = [x["id"] for x in cre["creados"]]
     assert len(ids) == 2
 
-    ed = _llamar_vivo(robot.app, cli, "npcs.editar", id=ids[0], salud=250, punteria=0.85, hostil=False)["persona"]
+    ed = puente.despachar(robot.app, "npcs.editar", {"id": ids[0], "salud": 250, "punteria": 0.85, "hostil": False})["persona"]
     assert ed["salud"] == 250.0 and ed["punteria"] == 0.85 and ed["hostil"] is False
 
-    _llamar_vivo(robot.app, cli, "npcs.accion", id=ids[0], accion="matar")
+    puente.despachar(robot.app, "npcs.accion", {"id": ids[0], "accion": "matar"})
     assert next(x for x in p.personas if x.id == ids[0]).muerto is True
 
-    _llamar_vivo(robot.app, cli, "npcs.accion", id=ids[0], accion="eliminar")
+    puente.despachar(robot.app, "npcs.accion", {"id": ids[0], "accion": "eliminar"})
     assert all(x.id != ids[0] for x in p.personas)
 
-    rep = _llamar_vivo(robot.app, cli, "policia.set", rep_banda={"banda": "Los Calaveras", "valor": 75})
+    rep = puente.despachar(robot.app, "policia.set", {"rep_banda": {"banda": "Los Calaveras", "valor": 75}})
     assert rep["rep_bandas"]["Los Calaveras"] == 75.0
 
 
-def test_policia_y_eventos(puente_activo):
-    robot, p, _, cli, _, _ = puente_activo
-    pol = _llamar_vivo(robot.app, cli, "policia.set", estrellas=4)
+def test_policia_y_eventos(robot):
+    p = robot.nueva_partida()
+    pol = puente.despachar(robot.app, "policia.set", {"estrellas": 4})
     assert pol["estrellas"] == 4 and p.j.estrellas == 4
 
-    pol2 = _llamar_vivo(robot.app, cli, "policia.set", estrellas=2)
+    pol2 = puente.despachar(robot.app, "policia.set", {"estrellas": 2})
     assert pol2["estrellas"] == 2 and p.j.estrellas == 2
 
-    _llamar_vivo(robot.app, cli, "policia.set", estrellas=0)
+    puente.despachar(robot.app, "policia.set", {"estrellas": 0})
     assert p.j.estrellas == 0
 
-    ev = _llamar_vivo(robot.app, cli, "eventos.lanzar", tipo="suceso_atraco")
+    ev = puente.despachar(robot.app, "eventos.lanzar", {"tipo": "suceso_atraco"})
     assert ev["evento"] == "atraco" and p.evento is not None
 
-    pers = _llamar_vivo(robot.app, cli, "eventos.lanzar", tipo="persecucion_vehiculo", modelo_id="deportivo", vel_obj=30)
+    pers = puente.despachar(robot.app, "eventos.lanzar", {"tipo": "persecucion_vehiculo", "modelo_id": "deportivo", "vel_obj": 30})
     assert pers["vehiculo"]["ia"] == "huida" and p.gps is not None
 
-    _llamar_vivo(robot.app, cli, "eventos.lanzar", tipo="buscar_pelea", banda="Los Calaveras")
+    puente.despachar(robot.app, "eventos.lanzar", {"tipo": "buscar_pelea", "banda": "Los Calaveras"})
     assert p.guerra is not None and p.guerra["tipo"] == "pelea"
-    _llamar_vivo(robot.app, cli, "eventos.lanzar", tipo="terminar_guerra")
+    puente.despachar(robot.app, "eventos.lanzar", {"tipo": "terminar_guerra"})
     assert p.guerra is None
 
-    tiempo = _llamar_vivo(robot.app, cli, "mundo.set", hora=22, dia=5, lluvia=True, dia_azar="fiesta")
+    tiempo = puente.despachar(robot.app, "mundo.set", {"hora": 22, "dia": 5, "lluvia": True, "dia_azar": "fiesta"})
     assert tiempo["dia"] == 5 and tiempo["lluvia"] is True and tiempo["dia_azar"]["id"] == "fiesta"
 
 
-def test_inspector_generico(puente_activo, tmp_path):
+def test_inspector_generico(robot, tmp_path):
     from juego import cifrado
     from juego.entidades import Jugador
 
-    robot, p, _, cli, _, _ = puente_activo
+    p = robot.nueva_partida()
     respaldo_ruta = tmp_path / "respaldo_antes_trampas.json"
     p._ruta_respaldo_inspector = str(respaldo_ruta)
 
-    res = _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="jugador", clave="alias", valor="El Jefe")
+    res = puente.despachar(robot.app, "inspector.escribir", {"objetivo": "jugador", "clave": "alias", "valor": "El Jefe"})
     assert p.j.alias == "El Jefe"
     assert respaldo_ruta.exists()
     assert res["respaldo"] == str(respaldo_ruta)
     copia = cifrado.leer_json(str(respaldo_ruta))
     assert copia["jugador"]["alias"] == ""
 
-    campos = _llamar_vivo(robot.app, cli, "inspector.leer", objetivo="jugador")["campos"]
+    campos = puente.despachar(robot.app, "inspector.leer", {"objetivo": "jugador"})["campos"]
     assert campos["alias"] == "El Jefe"
     assert "bolsa" not in campos and "reconquista" not in campos and "contrato" not in campos
 
@@ -395,10 +404,10 @@ def test_ganchos_y_gui_wx_sincronizada(puente_activo):
 
 def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch):
     import threading
-    robot, p, srv, cli, _, _ = puente_activo
-    _llamar_vivo(robot.app, cli, "npcs.crear", modo="aliado", cantidad=1)
+    robot, p, srv, _, _, _ = puente_activo
+    puente.despachar(robot.app, "npcs.crear", {"modo": "aliado", "cantidad": 1})
     if not p.vehiculos:
-        _llamar_vivo(robot.app, cli, "vehiculos.crear", modelo_id="sedan", hacer_mio=True, subir_ahora=False)
+        puente.despachar(robot.app, "vehiculos.crear", {"modelo_id": "sedan", "hacer_mio": True, "subir_ahora": False})
     p.j.dinero = 500
     p.j.salud = 90.0
     p.j.objetos["botiquin"] = 2
@@ -445,8 +454,8 @@ def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch
     ]
     for objetivo, clave, valor in casos_invalidos:
         extra = {"id": per.id} if objetivo == "persona" else ({"id": veh.id} if objetivo == "vehiculo_actual" else {})
-        with pytest.raises(ErrorPuente) as exc_info:
-            _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo=objetivo, clave=clave, valor=valor, **extra)
+        with pytest.raises(ValueError) as exc_info:
+            puente.despachar(robot.app, "inspector.escribir", {"objetivo": objetivo, "clave": clave, "valor": valor, **extra})
         assert exc_info.value
 
     # Verificación estricta: ningún error de sintaxis o validación modificó ni añadió nada ni creó respaldo aún
@@ -466,9 +475,9 @@ def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch
     assert getattr(p, "_respaldo_inspector_hecho", False) is False
 
     # Una escritura válida en stats permitidos y en objetos sí funciona
-    res_stat = _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="stats", clave="enemigos", valor="42")
+    res_stat = puente.despachar(robot.app, "inspector.escribir", {"objetivo": "stats", "clave": "enemigos", "valor": "42"})
     assert res_stat["ok"] is True and p.j.stats["enemigos"] == 42
-    res_obj = _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo="jugador", clave="objetos", valor='{"botiquin": 4}')
+    res_obj = puente.despachar(robot.app, "inspector.escribir", {"objetivo": "jugador", "clave": "objetos", "valor": '{"botiquin": 4}'})
     assert res_obj["ok"] is True and p.j.objetos == {"botiquin": 4}
     assert getattr(p, "_respaldo_inspector_hecho", False) is True
 
@@ -818,8 +827,8 @@ def test_inspector_y_cfg_atomicidad_exhaustiva(robot, tmp_path):
         puente.detener(robot.app)
 
 
-def test_trampas_marca_partida_y_desactiva_logros(puente_activo):
-    robot, p, _srv, _cli, _srv_port, _carpeta_fichas = puente_activo
+def test_trampas_marca_partida_y_desactiva_logros(robot):
+    p = robot.nueva_partida()
     from juego.entidades import Jugador
     from juego.menus_extra import progreso
 
