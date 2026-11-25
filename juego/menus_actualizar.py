@@ -471,6 +471,8 @@ def al_arrancar(app):
         return
 
     def mirar():
+        from . import comunidad                                  # la lista de la Comunidad de jugadores, al día
+        comunidad.poner_al_dia(app, en_segundo_plano=False)
         if app.cfg["comp_auto"]:
             from . import menus_componentes
             menus_componentes.mirar_al_arrancar(app)

@@ -227,5 +227,7 @@
   "plaza": "quảng trường",
   "muelle": "cầu cảng",
   "pared": "bức tường",
-  "Uno por línea, con el nombre interno del tema de la base de conversación: tiempo, futbol, trabajo_duro, dinero, comida... Si lo dejas vacío, valen los de serie.": "Một mục trên mỗi dòng, kèm tên nội bộ của chủ đề đối thoại: tiempo, futbol, trabajo_duro, dinero, comida... Nếu để trống, sẽ dùng các chủ đề mặc định."
+  "Uno por línea, con el nombre interno del tema de la base de conversación: tiempo, futbol, trabajo_duro, dinero, comida... Si lo dejas vacío, valen los de serie.": "Một mục trên mỗi dòng, kèm tên nội bộ của chủ đề đối thoại: tiempo, futbol, trabajo_duro, dinero, comida... Nếu để trống, sẽ dùng các chủ đề mặc định.",
+  "La sección Comunidad de jugadores del menú principal: grupos, foros, servidores y otros recursos que crean y llevan los propios jugadores. No es oficial. Para apuntar uno, la issue 25 de GitHub. Cada cambio sube «revision» y se publica con herramientas/publicar_comunidad.py: así le llega al juego sin esperar a una versión nueva.": "Mục Cộng đồng người chơi trong menu chính: các nhóm, diễn đàn, máy chủ và nguồn tài nguyên khác do chính người chơi tạo và vận hành. Mục này không chính thức. Để đăng ký một nơi, hãy dùng issue 25 trên GitHub. Mỗi thay đổi sẽ tăng «revision» và được công bố bằng herramientas/publicar_comunidad.py: nhờ vậy nó đến với trò chơi mà không cần chờ phiên bản mới.",
+  "Patricus productions": "Patricus productions"
 }

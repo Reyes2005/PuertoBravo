@@ -26104,7 +26104,7 @@
 "La sargento de bomberos": [
 "data/datos/misiones_extra3.json"
 ],
-"La sección Comunidad de jugadores del menú principal: grupos, foros, servidores y otros recursos que crean y llevan los propios jugadores. No es oficial. Para apuntar uno, la issue 25 de GitHub.": [
+"La sección Comunidad de jugadores del menú principal: grupos, foros, servidores y otros recursos que crean y llevan los propios jugadores. No es oficial. Para apuntar uno, la issue 25 de GitHub. Cada cambio sube «revision» y se publica con herramientas/publicar_comunidad.py: así le llega al juego sin esperar a una versión nueva.": [
 "data/datos/comunidad.json"
 ],
 "La secuencia más larga que has repetido sin fallar en la máquina de memoria.": [
@@ -35597,6 +35597,9 @@
 "Patatas, una malla": [
 "juego/compra.py",
 "data/datos/vida.json"
+],
+"Patricus productions": [
+"data/datos/comunidad.json"
 ],
 "Patrona de pesca de Costa Dorada. Empieza con la pesca al nivel cinco, buena resistencia, un remo, trescientos euros y el respeto de los vecinos.": [
 "data/mods/costa_dorada.json"
@@ -46675,6 +46678,7 @@
 "juego/menus_juego.py"
 ],
 "Un servidor que lleva un jugador. Sus normas las pone quien lo lleva.": [
+"data/datos/comunidad.json",
 "data/datos/comunidad.json"
 ],
 "Un sobre cambia de manos y tu expediente desaparece. Ya no te buscan.": [
