@@ -817,3 +817,48 @@ def test_inspector_y_cfg_atomicidad_exhaustiva(robot, tmp_path):
         assert veh.modelo is modelo_ref
     finally:
         puente.detener(robot.app)
+
+
+def test_trampas_marca_partida_y_desactiva_logros(puente_activo):
+    robot, p, _srv, _cli, _srv_port, _carpeta_fichas = puente_activo
+    from juego.entidades import Jugador
+    from juego.menus_extra import progreso
+
+    assert p.j.trampas_usadas is False
+    # Comando de solo lectura no debe marcar la partida
+    estado_leido = puente.despachar(robot.app, "estado", {})
+    assert estado_leido["jugador"]["trampas_usadas"] is False
+    assert p.j.trampas_usadas is False
+
+    # Una orden de escritura marca trampas_usadas=True y desactiva nuevos logros
+    res = puente.despachar(robot.app, "jugador.set", {"dinero": 60000})
+    assert p.j.trampas_usadas is True
+    assert res["jugador"]["trampas_usadas"] is True
+
+    logros_antes = list(p.j.logros)
+    p.j.dinero = 100000
+    p.comprobar_logros()
+    assert p.j.logros == logros_antes
+
+    # Persistencia en a_dict / de_dict y aviso en el menú de logros
+    datos_j = p.j.a_dict()
+    assert datos_j["trampas_usadas"] is True
+    j_cargado = Jugador()
+    j_cargado.de_dict(datos_j)
+    assert j_cargado.trampas_usadas is True
+
+    # Partidas antiguas sin el campo cargan con False
+    datos_legado = dict(datos_j)
+    datos_legado.pop("trampas_usadas", None)
+    j_legado = Jugador()
+    j_legado.de_dict(datos_legado)
+    assert j_legado.trampas_usadas is False
+
+    progreso(p)
+    menu_stats = robot.app.pila[-1]
+    op_logros = next(
+        op for op in menu_stats.opciones
+        if "Logros" in (op._texto() if callable(op._texto) else str(op._texto))
+    )
+    op_logros.accion()
+    assert "desactivados" in robot.dicho().lower()

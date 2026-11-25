@@ -581,6 +581,7 @@ def _recolectar_estado(app) -> dict:
             "perro_en_casa": bool(j.perro_en_casa),
             "antecedentes": _json_seguro(j.antecedentes),
             "logros": list(j.logros),
+            "trampas_usadas": bool(getattr(j, "trampas_usadas", False)),
             "stats": _json_seguro(j.stats),
         },
         "vehiculo_actual": _info_vehiculo(p, j.veh) if j.veh is not None else None,
@@ -706,6 +707,18 @@ def _validar_integridad_campo(objetivo: str, clave: str, nuevo, partida=None) ->
 
 def despachar(app, cmd: str, args: dict | None = None):
     """Ejecuta un comando del puente sobre la instancia viva de App y Partida."""
+    res = _despachar_interno(app, cmd, args)
+    if cmd not in COMANDOS_LECTURA:
+        p = getattr(app, "partida", None)
+        if p is not None and getattr(p, "j", None) is not None:
+            p.j.trampas_usadas = True
+            if isinstance(res, dict) and isinstance(res.get("jugador"), dict):
+                res["jugador"]["trampas_usadas"] = True
+    return res
+
+
+def _despachar_interno(app, cmd: str, args: dict | None = None):
+    """Implementación interna de despacho de comandos del puente."""
     srv = getattr(app, "_puente_trampas", None)
     forzado = bool(getattr(srv, "_forzado", False)) if srv is not None else False
     if srv is not None and not forzado and not trampas_habilitadas_en_juego(app):
