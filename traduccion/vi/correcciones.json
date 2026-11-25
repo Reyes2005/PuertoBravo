@@ -219,5 +219,13 @@
   "cohete": "quả tên lửa",
   "cohetes": "quả tên lửa",
   "bala": "viên đạn",
-  "balas": "viên đạn"
+  "balas": "viên đạn",
+  "calzada": "lòng đường",
+  "acera": "vỉa hè",
+  "césped": "bãi cỏ",
+  "arena": "cát",
+  "plaza": "quảng trường",
+  "muelle": "cầu cảng",
+  "pared": "bức tường",
+  "Uno por línea, con el nombre interno del tema de la base de conversación: tiempo, futbol, trabajo_duro, dinero, comida... Si lo dejas vacío, valen los de serie.": "Một mục trên mỗi dòng, kèm tên nội bộ của chủ đề đối thoại: tiempo, futbol, trabajo_duro, dinero, comida... Nếu để trống, sẽ dùng các chủ đề mặc định."
 }

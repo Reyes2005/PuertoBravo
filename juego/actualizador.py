@@ -739,7 +739,7 @@ def leer_registro_instalador(ruta=None):
             prefijo = "PASO " if linea.startswith("PASO ") else tr("PASO ")
             paso_actual = linea[len(prefijo):].strip()
         elif linea.startswith("TERMINADA ") or linea.startswith(tr("TERMINADA ")):
-            r["bien"] = linea.split()[1] in ("bien", tr("bien"))
+            r["bien"] = linea.split()[1] == "bien"          # «TERMINADA bien» lo escribe el .bat, siempre en español
         elif linea.startswith("SERVIDOR ") or linea.startswith(tr("SERVIDOR ")):
             # «SERVIDOR relanzado tipo=consola» o «SERVIDOR sin_relanzar tipo=panel motivo=servicio»
             m = re.search(r"SERVIDOR\s+(\S+)\s+tipo=(\S+)(?:\s+motivo=(\S+))?", linea)

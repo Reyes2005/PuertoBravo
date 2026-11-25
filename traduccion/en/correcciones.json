@@ -1,5 +1,12 @@
 {
  ", con el servidor parado": ", with the server stopped",
  "Nombre": "Name",
- "A&brir la carpeta de mods\tCtrl+B": "Open the mods &folder\tCtrl+B"
+ "A&brir la carpeta de mods\tCtrl+B": "Open the mods &folder\tCtrl+B",
+ "calzada": "roadway",
+ "acera": "sidewalk",
+ "césped": "grass",
+ "arena": "sand",
+ "plaza": "square",
+ "muelle": "dock",
+ "pared": "wall"
 }

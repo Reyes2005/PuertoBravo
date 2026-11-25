@@ -1318,15 +1318,6 @@
 "########## MARCA DEL JUGADOR: aquí ha pasado algo ##########": [
 "juego/registro.py"
 ],
-"%COPIA%": [
-"juego/actualizador.py"
-],
-"%COPIA%\\": [
-"juego/actualizador.py"
-],
-"%NUEVA%\\lib": [
-"juego/actualizador.py"
-],
 "%d armas: %s": [
 "servidor/compat.py"
 ],
@@ -1762,9 +1753,6 @@
 ],
 "(fuera de personaje) %s": [
 "servidor/nucleo.py"
-],
-"(goto) 2>nul & del \"%~f0\"": [
-"juego/actualizador.py"
 ],
 "(sin valor)": [
 "editor/formulario.py"
@@ -2425,9 +2413,6 @@
 ". Última nota: {nota} de 100": [
 "juego/menus_honrado.py"
 ],
-"/njh /njs /ndl /nfl /np /log+:\"%REG%\"": [
-"juego/actualizador.py"
-],
 "1 elemento": [
 "editor/formulario.py"
 ],
@@ -2549,15 +2534,6 @@
 ],
 "<p>{n} sonidos.": [
 "herramientas/generar_datos.py"
-],
-">\"%REG%\" echo Instalador de Puerto Bravo. Actualizacion a la version {version}.": [
-"juego/actualizador.py"
-],
-">>\"%REG%\" echo {texto}": [
-"juego/actualizador.py"
-],
-"@echo off": [
-"juego/actualizador.py"
 ],
 "A %s no se le reconocen %d euros de %d: el tope es de %d por hora.": [
 "servidor/nucleo.py"
@@ -20405,12 +20381,6 @@
 "FALLO ": [
 "juego/actualizador.py"
 ],
-"FALLO paso=%PASO% codigo=%RC% motivo=copia": [
-"juego/actualizador.py"
-],
-"FALLO paso=%PASO% codigo=0 motivo=sigue_abierto": [
-"juego/actualizador.py"
-],
 "Fabricar mercancía para venderla después a los proveedores o por la calle.": [
 "juego/laboratorio.py"
 ],
@@ -34392,18 +34362,7 @@
 "data/datos/vida.json"
 ],
 "PASO ": [
-"juego/actualizador.py"
-],
-"PASO copia_seguridad": [
-"juego/actualizador.py"
-],
-"PASO esperar_cierre": [
-"juego/actualizador.py"
-],
-"PASO esperar_programas": [
-"juego/actualizador.py"
-],
-"PASO {nombre}": [
+"juego/actualizador.py",
 "juego/actualizador.py"
 ],
 "PB1-": [
@@ -38256,12 +38215,6 @@
 "REGISTRO DE UNA SESIÓN DE PUERTO BRAVO: LEY DEL ASFALTO\n\nSi el juego te ha dado un fallo, comprime esta carpeta entera en un ZIP y envíala a quien hace el juego.\nCon ella se puede ver qué pasó sin estar delante.\n\nQUÉ CONTIENE\n  sistema.txt       Versión del juego, versión de Windows, lector de pantalla, sonido, mods, packs y opciones.\n  sesion.log        Lo que ha pasado en esta sesión, por orden: pantallas abiertas, teclas pulsadas en el juego,\n                    lo que el juego ha dicho, el estado de la partida cada pocos segundos, avisos y errores.\n  errores.log       Los errores, con su detalle técnico.\n  fallo_grave.log   Solo tiene algo si el programa se cerró de golpe.\n\nQUÉ NO CONTIENE\n  Nada de lo que escribes en los cuadros de texto: mensajes, contraseñas, direcciones ni claves.\n  Ni los mensajes del chat, ni tu nombre en la red, ni el de tus amigos.\n  Ni direcciones de internet, ni tu nombre de usuario de Windows, ni el nombre de tu equipo, ni las rutas de tus carpetas.\n  Ni los nombres de tu música, ni tus partidas guardadas.\n\nSon archivos de texto: puedes abrirlos y leerlos antes de enviarlos.\nSe guardan las cinco últimas sesiones; las más antiguas se borran solas.\n": [
 "juego/registro.py"
 ],
-"RESULTADO copia_seguridad codigo=%RC%": [
-"juego/actualizador.py"
-],
-"RESULTADO {nombre} codigo=%RC%": [
-"juego/actualizador.py"
-],
 "Raciones de pienso para {perro}: {get}": [
 "juego/menus_juego.py"
 ],
@@ -39638,9 +39591,6 @@
 "juego/catalogo_sonidos.py"
 ],
 "SERVIDOR ": [
-"juego/actualizador.py"
-],
-"SERVIDOR {v} tipo={tipo}": [
 "juego/actualizador.py"
 ],
 "SIN cifrado": [
@@ -42724,9 +42674,6 @@
 ],
 "Susurrarle una tontería al oído": [
 "juego/laboratorio.py"
-],
-"System32": [
-"juego/actualizador.py"
 ],
 "Sábado": [
 "editor/esquema.py"
@@ -50916,6 +50863,9 @@
 "acento grave": [
 "juego/teclado.py"
 ],
+"acera": [
+"juego/mundo.py"
+],
 "activa o desactiva la baliza sonora del GPS": [
 "juego/ayuda.py"
 ],
@@ -51040,6 +50990,9 @@
 ],
 "aquí la caja tiene guardia.": [
 "juego/atracos.py"
+],
+"arena": [
+"juego/mundo.py"
 ],
 "arma anterior": [
 "juego/mando.py"
@@ -51233,6 +51186,9 @@
 ],
 "calma hasta el día {calma}. Hoy es el día {dia}": [
 "juego/reconquista.py"
+],
+"calzada": [
+"juego/mundo.py"
 ],
 "camarer[o|a] de sala": [
 "data/datos/vida.json"
@@ -51608,6 +51564,9 @@
 "cuerpo a cuerpo": [
 "juego/combate.py"
 ],
+"césped": [
+"juego/mundo.py"
+],
 "código": [
 "servidor/nucleo.py"
 ],
@@ -51869,12 +51828,6 @@
 ],
 "echas unas monedas": [
 "juego/sistemas.py"
-],
-"echo Actualizando Puerto Bravo a la version {version}. No cierres esta ventana.": [
-"juego/actualizador.py"
-],
-"echo La actualizacion ha fallado. Se restaura la version anterior.": [
-"juego/actualizador.py"
 ],
 "efectos navales": [
 "juego/compra.py",
@@ -52782,21 +52735,6 @@
 "gira hacia el {cardinal} por {via}": [
 "juego/partida.py"
 ],
-"goto abrir": [
-"juego/actualizador.py"
-],
-"goto copiar": [
-"juego/actualizador.py"
-],
-"goto espera": [
-"juego/actualizador.py"
-],
-"goto fin": [
-"juego/actualizador.py"
-],
-"goto mirar": [
-"juego/actualizador.py"
-],
 "gracias|muchas gracias|te lo agradezco|muy amable|eres muy amable|que amable|te debo una": [
 "juego/respuestas_datos2.py"
 ],
@@ -52950,36 +52888,6 @@
 ],
 "húngaro": [
 "juego/i18n.py"
-],
-"if %N% geq 180 goto no_cierra": [
-"juego/actualizador.py"
-],
-"if %N% geq 90 goto no_cierra": [
-"juego/actualizador.py"
-],
-"if %N%==0 echo Esperando a que se cierren el servidor en linea o el editor de mods de Puerto Bravo. El servidor avisa a los jugadores y se cierra solo.": [
-"juego/actualizador.py"
-],
-"if %RC% geq 8 goto fallo": [
-"juego/actualizador.py"
-],
-"if %errorlevel% gtr %RC% set RC=%errorlevel%": [
-"juego/actualizador.py"
-],
-"if errorlevel 1 goto programas": [
-"juego/actualizador.py"
-],
-"if exist \"%COPIA%\" rmdir /s /q \"%COPIA%\"": [
-"juego/actualizador.py"
-],
-"if exist \"{origen}\\\" {robocopy} \"{origen}\" \"{destino}\" /e /r:2 /w:1 {callado}": [
-"juego/actualizador.py"
-],
-"if not errorlevel 1 goto ocupado": [
-"juego/actualizador.py"
-],
-"if not exist \"{si}\" goto {salto}": [
-"juego/actualizador.py"
 ],
 "igual que ayer": [
 "juego/menus_extra.py"
@@ -53885,6 +53793,9 @@
 "mucho, con la explicación de cada opción": [
 "juego/menus_juego.py"
 ],
+"muelle": [
+"juego/mundo.py"
+],
 "mujer": [
 "juego/menus_juego.py"
 ],
@@ -54213,10 +54124,14 @@
 "juego/pantallas.py"
 ],
 "parado": [
+"juego/actualizador.py",
 "servidor/nucleo.py"
 ],
 "pararlo un momento": [
 "juego/menus_actualizar.py"
+],
+"pared": [
+"juego/mundo.py"
 ],
 "parte de la mercancía": [
 "juego/capo.py"
@@ -54271,6 +54186,9 @@
 "playa=de playa": [
 "juego/vestuario.py",
 "data/datos/vida.json"
+],
+"plaza": [
+"juego/mundo.py"
 ],
 "pocas veces": [
 "juego/menus_juego.py"
@@ -54594,12 +54512,6 @@
 "rivales": [
 "juego/misiones.py"
 ],
-"rmdir /s /q \"%COPIA%\"": [
-"juego/actualizador.py"
-],
-"rmdir /s /q \"%NUEVA%\"": [
-"juego/actualizador.py"
-],
 "robado": [
 "juego/mochila.py",
 "juego/mochila.py"
@@ -54737,48 +54649,6 @@
 "servicios de {get}": [
 "juego/menus_honrado.py"
 ],
-"set \"APP={programa}\"": [
-"juego/actualizador.py"
-],
-"set \"COPIA={copia}\"": [
-"juego/actualizador.py"
-],
-"set \"NOTA={join}\"": [
-"juego/actualizador.py"
-],
-"set \"NUEVA={nueva}\"": [
-"juego/actualizador.py"
-],
-"set /a N+=1": [
-"juego/actualizador.py",
-"juego/actualizador.py"
-],
-"set /a N=0": [
-"juego/actualizador.py",
-"juego/actualizador.py"
-],
-"set PASO=copia_seguridad": [
-"juego/actualizador.py"
-],
-"set PASO=empezar": [
-"juego/actualizador.py"
-],
-"set PASO=esperar_cierre": [
-"juego/actualizador.py"
-],
-"set PASO=esperar_programas": [
-"juego/actualizador.py"
-],
-"set PASO={nombre}": [
-"juego/actualizador.py"
-],
-"set RC=%errorlevel%": [
-"juego/actualizador.py"
-],
-"set RC=0": [
-"juego/actualizador.py",
-"juego/actualizador.py"
-],
 "señala al otro lado de la calle": [
 "data/datos/gente.json"
 ],
@@ -54883,9 +54753,6 @@
 ],
 "sin tipos": [
 "editor/esquema.py"
-],
-"sin_relanzar": [
-"juego/actualizador.py"
 ],
 "sois aliados": [
 "juego/misiones.py"
@@ -58612,10 +58479,6 @@
 "{perro}: {donde}, {h}, y {c}.": [
 "juego/extras3.py"
 ],
-"{ping} -n 2 127.0.0.1 >nul": [
-"juego/actualizador.py",
-"juego/actualizador.py"
-],
 "{pre}: {nombre}, en {nombre2}.": [
 "juego/destinos.py"
 ],
@@ -58790,9 +58653,6 @@
 "{req} unidades de mercancía": [
 "juego/capo.py"
 ],
-"{robocopy} \"{origen}\" \"{destino}\" {nombres} /r:2 /w:1 {callado}": [
-"juego/actualizador.py"
-],
 "{semana}, día {dia}": [
 "juego/partida.py"
 ],
@@ -58820,12 +58680,6 @@
 ],
 "{sv_oferta} euros": [
 "juego/menus_enlinea.py"
-],
-"{tasklist} /fi \"IMAGENAME eq {exe}\" /fo csv /nh 2>nul | {find} /i \"{exe}\" >nul": [
-"juego/actualizador.py"
-],
-"{tasklist} /fi \"PID eq {pid}\" 2>nul | {find} \" {pid} \" >nul": [
-"juego/actualizador.py"
 ],
 "{texto} El GPS vuelve a {nombre}.": [
 "juego/partida.py"

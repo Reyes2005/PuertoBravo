@@ -176,5 +176,12 @@
  "Tu banda: necesitas un territorio para tenerla": "Sua gangue: você precisa de um território para ter uma",
  "Ya estás en una banda. Sal de ella antes de fundar otra.": "Você já está em uma gangue. Saia dela antes de fundar outra.",
  "Moral que gana la banda que te quita un barrio": "Moral obtida pela gangue que tira um bairro de você",
- "Moral que pierde la banda rechazada": "Moral perdida pela gangue rejeitada"
+ "Moral que pierde la banda rechazada": "Moral perdida pela gangue rejeitada",
+ "calzada": "pista",
+ "acera": "calçada",
+ "césped": "grama",
+ "arena": "areia",
+ "plaza": "praça",
+ "muelle": "cais",
+ "pared": "parede"
 }
