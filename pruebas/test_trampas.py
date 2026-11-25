@@ -861,3 +861,45 @@ def test_trampas_marca_partida_y_desactiva_logros(puente_activo):
     )
     op_logros.accion()
     assert "desactivados" in robot.dicho().lower()
+
+
+def test_ventana_trampas_accesibilidad_y_teclado():
+    try:
+        import wx
+        app_wx = wx.App(False)
+    except Exception as exc:
+        pytest.skip(f"Sin entorno gráfico wx disponible: {exc}")
+
+    import trampas.ventana as V
+    from editor.accesibilidad import revision_teclado
+
+    wx.HelpProvider.Set(wx.SimpleHelpProvider())
+    v = V.VentanaTrampas(auto_conectar=False, intervalo_ms=0)
+    try:
+        problemas = revision_teclado.revisar_teclado(v, teclas_propias=["F5"])
+        assert problemas == [], revision_teclado.informe(problemas)
+
+        sp_dobles = []
+        busquedas = []
+        sin_ayuda = []
+
+        def recorrer(w):
+            for c in w.GetChildren():
+                if isinstance(c, wx.SpinCtrlDouble):
+                    sp_dobles.append(c.GetName())
+                if isinstance(c, wx.SearchCtrl):
+                    busquedas.append(c.GetName())
+                if isinstance(c, (wx.Button, wx.CheckBox, wx.ListBox, wx.TextCtrl, wx.Choice, wx.SpinCtrl)):
+                    if not c.GetHelpText().strip():
+                        sin_ayuda.append((type(c).__name__, c.GetName()))
+                recorrer(c)
+
+        recorrer(v)
+        assert sp_dobles == []
+        assert busquedas == []
+        assert sin_ayuda == []
+    finally:
+        v.Close()
+        v.Destroy()
+        app_wx.ProcessPendingEvents()
+        app_wx.Destroy()

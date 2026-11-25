@@ -12,6 +12,7 @@ try:
     from editor.accesibilidad import voz as _voz
     from editor.accesibilidad.ayuda import asegurar_ayudas, habilitar_ayuda_contextual
     from editor.accesibilidad.dialogos import mostrar_error
+    from editor.accesibilidad.idioma import fijar_idioma_espanol
     from editor.accesibilidad.nombres import crear_campo
 except Exception:  # pragma: no cover - respaldo ante cambios futuros en editor.accesibilidad
     class _VozFallback:
@@ -29,6 +30,9 @@ except Exception:  # pragma: no cover - respaldo ante cambios futuros en editor.
 
     def asegurar_ayudas(ventana: wx.Window) -> None:
         pass
+
+    def fijar_idioma_espanol(*args, **kwargs):
+        return None
 
     def mostrar_error(padre: wx.Window | None, mensaje: str, titulo: str = "Error") -> None:
         wx.MessageBox(mensaje, titulo, wx.OK | wx.ICON_ERROR, parent=padre)
@@ -105,20 +109,20 @@ class VentanaTrampas(wx.Frame):
         # Barra superior de conexión
         barra = wx.BoxSizer(wx.HORIZONTAL)
         _, self.sel_instancia = crear_campo(
-            panel, "&Instancia del juego:", wx.Choice, choices=["(ninguna detectada)"],
+            panel, "&1 Instancia del juego:", wx.Choice, choices=["(ninguna detectada)"],
             ayuda="Elige qué proceso de Puerto Bravo quieres controlar.",
             sizer=barra, horizontal=True,
         )
-        self.btn_conectar = wx.Button(panel, label="&Conectar")
+        self.btn_conectar = wx.Button(panel, label="&2 Conectar")
         self.btn_conectar.SetHelpText("Busca y conecta con el proceso de Puerto Bravo seleccionado.")
-        self.btn_refrescar = wx.Button(panel, label="&Actualizar (F5)")
+        self.btn_refrescar = wx.Button(panel, label="&3 Actualizar (F5)")
         self.btn_refrescar.SetHelpText("Recarga y sincroniza todos los valores actuales desde la partida.")
         barra.Add(self.btn_conectar, 0, wx.ALL, 4)
         barra.Add(self.btn_refrescar, 0, wx.ALL, 4)
         raiz.Add(barra, 0, wx.EXPAND | wx.ALL, 4)
 
         _, self.txt_conexion = crear_campo(
-            panel, "Estado de &conexión:", wx.TextCtrl, style=wx.TE_READONLY,
+            panel, "&4 Estado de conexión:", wx.TextCtrl, style=wx.TE_READONLY,
             ayuda="Indica si hay conexión con el juego y si hay una partida en solitario activa.",
             sizer=raiz, horizontal=True,
         )
@@ -172,10 +176,6 @@ class VentanaTrampas(wx.Frame):
             val_i = max(ctrl.GetMin(), min(ctrl.GetMax(), int(round(float(valor)))))
             if ctrl.GetValue() != val_i:
                 ctrl.SetValue(val_i)
-        elif isinstance(ctrl, wx.SpinCtrlDouble):
-            val_f = max(ctrl.GetMin(), min(ctrl.GetMax(), round(float(valor), 2)))
-            if abs(ctrl.GetValue() - val_f) > 0.005:
-                ctrl.SetValue(val_f)
         elif isinstance(ctrl, wx.TextCtrl):
             val_s = str(valor if valor is not None else "")
             if ctrl.GetValue() != val_s:
@@ -260,7 +260,7 @@ class VentanaTrampas(wx.Frame):
         s = wx.BoxSizer(wx.VERTICAL)
 
         _, self.txt_resumen_jug = crear_campo(
-            pag, "Resumen de &partida:", wx.TextCtrl,
+            pag, "&5 Resumen de partida:", wx.TextCtrl,
             style=wx.TE_MULTILINE | wx.TE_READONLY, size=(-1, 86),
             ayuda="Resumen vivo de tu partida. Recórrelo con las flechas.",
             sizer=s,
@@ -278,13 +278,13 @@ class VentanaTrampas(wx.Frame):
         self.sp_salud = _campo_grid(p_comb, gc, "&Salud:", wx.SpinCtrl, min=1, max=9999, initial=100, ayuda="Salud actual.")
         self.sp_salud_max = _campo_grid(p_comb, gc, "Salud má&xima:", wx.SpinCtrl, min=10, max=9999, initial=100, ayuda="Salud máxima.")
         self.sp_blindaje = _campo_grid(p_comb, gc, "&Blindaje:", wx.SpinCtrl, min=0, max=1000, initial=0, ayuda="Puntos de chaleco antibalas.")
-        self.sp_foco = _campo_grid(p_comb, gc, "&Concentración (foco):", wx.SpinCtrl, min=0, max=100, initial=100, ayuda="Medidor del tiempo lento.")
+        self.sp_foco = _campo_grid(p_comb, gc, "Con&centración (foco):", wx.SpinCtrl, min=0, max=100, initial=100, ayuda="Medidor del tiempo lento.")
         sc.Add(gc, 0, wx.EXPAND | wx.ALL, 8)
         self.chk_invulnerable = wx.CheckBox(p_comb, label="Modo &invulnerable (sin daño)")
         sc.Add(self.chk_invulnerable, 0, wx.LEFT | wx.BOTTOM, 8)
         bc = wx.WrapSizer(wx.HORIZONTAL)
         self.btn_aplicar_comb = wx.Button(p_comb, label="&Aplicar combate")
-        self.btn_curar = wx.Button(p_comb, label="&Curar y restaurar todo")
+        self.btn_curar = wx.Button(p_comb, label="Cu&rar y restaurar todo")
         bc.Add(self.btn_aplicar_comb, 0, wx.ALL, 4)
         bc.Add(self.btn_curar, 0, wx.ALL, 4)
         sc.Add(bc, 0, wx.LEFT | wx.RIGHT, 4)
@@ -326,7 +326,7 @@ class VentanaTrampas(wx.Frame):
         gn.AddGrowableCol(1, 1)
         gn.AddGrowableCol(3, 1)
         self.sp_hambre = _campo_grid(np, gn, "Ha&mbre (0-100):", wx.SpinCtrl, min=0, max=100, initial=0)
-        self.sp_sed = _campo_grid(np, gn, "Se&d (0-100):", wx.SpinCtrl, min=0, max=100, initial=0)
+        self.sp_sed = _campo_grid(np, gn, "&Sed (0-100):", wx.SpinCtrl, min=0, max=100, initial=0)
         self.sp_sueno = _campo_grid(np, gn, "S&ueño (0-100):", wx.SpinCtrl, min=0, max=100, initial=0)
         self.sp_suciedad = _campo_grid(np, gn, "Suc&iedad (0-100):", wx.SpinCtrl, min=0, max=100, initial=0)
         box_nec.Add(gn, 0, wx.EXPAND | wx.ALL, 4)
@@ -376,7 +376,7 @@ class VentanaTrampas(wx.Frame):
         gb.AddGrowableCol(1, 1)
         gb.AddGrowableCol(3, 1)
         self.txt_banda_nombre = _campo_grid(bp, gb, "&Nombre banda:", wx.TextCtrl)
-        self.txt_alias = _campo_grid(bp, gb, "&Alias de jefe:", wx.TextCtrl)
+        self.txt_alias = _campo_grid(bp, gb, "Alias de &jefe:", wx.TextCtrl)
         self.sp_banda_num = _campo_grid(bp, gb, "&Miembros:", wx.SpinCtrl, min=0, max=50, initial=0)
         box_ban.Add(gb, 0, wx.EXPAND | wx.ALL, 4)
         bb = wx.WrapSizer(wx.HORIZONTAL)
@@ -394,12 +394,12 @@ class VentanaTrampas(wx.Frame):
         gpe = wx.FlexGridSizer(cols=4, vgap=6, hgap=10)
         gpe.AddGrowableCol(1, 1)
         gpe.AddGrowableCol(3, 1)
-        self.txt_perro_nombre = _campo_grid(pp, gpe, "N&ombre perro:", wx.TextCtrl)
+        self.txt_perro_nombre = _campo_grid(pp, gpe, "Nombre &perro:", wx.TextCtrl)
         self.sp_perro_hambre = _campo_grid(pp, gpe, "&Hambre perro (0-100):", wx.SpinCtrl, min=0, max=100, initial=0)
         self.sp_perro_confianza = _campo_grid(pp, gpe, "Con&fianza perro (0-100):", wx.SpinCtrl, min=0, max=100, initial=100)
         box_per.Add(gpe, 0, wx.EXPAND | wx.ALL, 4)
         bpe = wx.BoxSizer(wx.HORIZONTAL)
-        self.btn_aplicar_perro = wx.Button(pp, label="A&plicar perro")
+        self.btn_aplicar_perro = wx.Button(pp, label="Apl&icar perro")
         self.btn_perro = wx.Button(pp, label="Ad&optar / traer perro")
         bpe.Add(self.btn_aplicar_perro, 0, wx.ALL, 4)
         bpe.Add(self.btn_perro, 0, wx.ALL, 4)
@@ -495,7 +495,7 @@ class VentanaTrampas(wx.Frame):
             sizer=sa,
         )
         _, self.txt_arma_estado = crear_campo(
-            p_arm, "Estado ac&tual:", wx.TextCtrl, style=wx.TE_READONLY,
+            p_arm, "Es&tado actual:", wx.TextCtrl, style=wx.TE_READONLY,
             sizer=sa, horizontal=True,
         )
         ga = wx.FlexGridSizer(cols=4, vgap=6, hgap=10)
@@ -505,7 +505,7 @@ class VentanaTrampas(wx.Frame):
         self.sp_balas = _campo_grid(p_arm, ga, "Munición de &reserva:", wx.SpinCtrl, min=0, max=99999, initial=250)
         sa.Add(ga, 0, wx.EXPAND | wx.ALL, 6)
         fa_chk = wx.BoxSizer(wx.HORIZONTAL)
-        self.chk_silenciador = wx.CheckBox(p_arm, label="S&ilenciador")
+        self.chk_silenciador = wx.CheckBox(p_arm, label="&Silenciador")
         self.chk_ampliado = wx.CheckBox(p_arm, label="Cargador am&pliado")
         fa_chk.Add(self.chk_silenciador, 0, wx.ALL, 6)
         fa_chk.Add(self.chk_ampliado, 0, wx.ALL, 6)
@@ -514,7 +514,7 @@ class VentanaTrampas(wx.Frame):
         self.btn_dar_arma = wx.Button(p_arm, label="&Dar / aplicar arma")
         self.btn_equipar_arma = wx.Button(p_arm, label="&Equipar")
         self.btn_quitar_arma = wx.Button(p_arm, label="&Quitar arma")
-        self.btn_dar_todas = wx.Button(p_arm, label="Dar &todas las armas")
+        self.btn_dar_todas = wx.Button(p_arm, label="Dar t&odas las armas")
         for b in (self.btn_dar_arma, self.btn_equipar_arma, self.btn_quitar_arma, self.btn_dar_todas):
             b_armas.Add(b, 0, wx.ALL, 4)
         sa.Add(b_armas, 0, wx.EXPAND | wx.ALL, 4)
@@ -564,7 +564,7 @@ class VentanaTrampas(wx.Frame):
         _, self.sel_sustancia = crear_campo(sup, "&Sustancia:", wx.Choice, choices=[], sizer=fsu, horizontal=True)
         _, self.sp_sust_cant = crear_campo(sup, "&Unidades:", wx.SpinCtrl, min=0, max=999, initial=0, sizer=fsu, horizontal=True, expandir=False)
         self.btn_fijar_sustancia = wx.Button(sup, label="&Fijar unidades")
-        self.btn_dar_sustancia = wx.Button(sup, label="&Sumar +10")
+        self.btn_dar_sustancia = wx.Button(sup, label="Su&mar +10")
         fsu.Add(self.btn_fijar_sustancia, 0, wx.ALL, 4)
         fsu.Add(self.btn_dar_sustancia, 0, wx.ALL, 4)
         box_su.Add(fsu, 0, wx.EXPAND | wx.ALL, 2)
@@ -574,7 +574,7 @@ class VentanaTrampas(wx.Frame):
         prp = box_pr.GetStaticBox()
         fpr = wx.BoxSizer(wx.HORIZONTAL)
         _, self.sel_producto = crear_campo(prp, "&Producto:", wx.Choice, choices=[], sizer=fpr, horizontal=True)
-        _, self.sp_prod_cant = crear_campo(prp, "Can&tidad:", wx.SpinCtrl, min=1, max=99, initial=5, sizer=fpr, horizontal=True, expandir=False)
+        _, self.sp_prod_cant = crear_campo(prp, "&Cantidad:", wx.SpinCtrl, min=1, max=99, initial=5, sizer=fpr, horizontal=True, expandir=False)
         self.btn_dar_producto = wx.Button(prp, label="Añadir al &bolsillo")
         fpr.Add(self.btn_dar_producto, 0, wx.ALL, 4)
         box_pr.Add(fpr, 0, wx.EXPAND | wx.ALL, 2)
@@ -621,7 +621,7 @@ class VentanaTrampas(wx.Frame):
         _, self.sel_modelo_veh = crear_campo(p_gen, "&Modelo a generar:", wx.Choice, choices=[], sizer=sg)
         _, self.txt_veh_nombre = crear_campo(p_gen, "&Nombre propio (opcional):", wx.TextCtrl, sizer=sg)
         fg = wx.BoxSizer(wx.HORIZONTAL)
-        self.chk_veh_mio = wx.CheckBox(p_gen, label="Hacer &mío")
+        self.chk_veh_mio = wx.CheckBox(p_gen, label="&Hacer mío")
         self.chk_veh_mio.SetValue(True)
         self.chk_veh_subir = wx.CheckBox(p_gen, label="&Subir al instante")
         self.chk_veh_subir.SetValue(True)
@@ -644,12 +644,12 @@ class VentanaTrampas(wx.Frame):
             sizer=sa,
         )
         b_veh = wx.WrapSizer(wx.HORIZONTAL)
-        self.btn_veh_subir = wx.Button(p_act, label="S&ubir")
+        self.btn_veh_subir = wx.Button(p_act, label="&Subir")
         self.btn_veh_traer = wx.Button(p_act, label="&Traer aquí")
         self.btn_veh_reparar = wx.Button(p_act, label="&Reparar")
         self.btn_veh_combustible = wx.Button(p_act, label="Llenar &depósito")
-        self.btn_veh_averias = wx.Button(p_act, label="Quitar a&verías")
-        self.btn_veh_mejoras = wx.Button(p_act, label="M&ejoras máx.")
+        self.btn_veh_averias = wx.Button(p_act, label="Quitar &averías")
+        self.btn_veh_mejoras = wx.Button(p_act, label="&Mejoras máx.")
         self.btn_veh_mio = wx.Button(p_act, label="Hacer &propio")
         self.btn_veh_explotar = wx.Button(p_act, label="E&xplotar")
         self.btn_veh_eliminar = wx.Button(p_act, label="E&liminar")
@@ -667,23 +667,21 @@ class VentanaTrampas(wx.Frame):
         # 3.3 Especificaciones y Taller
         p_ed = wx.Panel(sub, name="Especificaciones y Taller")
         sed = wx.BoxSizer(wx.VERTICAL)
-        _, self.txt_veh_ed_info = crear_campo(p_ed, "Vehículo &seleccionado:", wx.TextCtrl, style=wx.TE_READONLY, sizer=sed, horizontal=True)
+        _, self.txt_veh_ed_info = crear_campo(p_ed, "&Vehículo seleccionado:", wx.TextCtrl, style=wx.TE_READONLY, sizer=sed, horizontal=True)
         grid_v = wx.FlexGridSizer(cols=4, vgap=6, hgap=10)
         grid_v.AddGrowableCol(1, 1)
         grid_v.AddGrowableCol(3, 1)
 
-        def _vnum(etq, minimo, maximo, inc):
-            return _campo_grid(p_ed, grid_v, etq, wx.SpinCtrlDouble, min=minimo, max=maximo, initial=25.0, inc=inc)
+        def _vnum(etq, minimo, maximo, inicial):
+            return _campo_grid(p_ed, grid_v, etq, wx.SpinCtrl, min=int(minimo), max=int(maximo), initial=int(inicial))
 
         self.txt_veh_ed_nombre = _campo_grid(p_ed, grid_v, "&Nombre:", wx.TextCtrl)
         self.sel_veh_ia = _campo_grid(p_ed, grid_v, "Modo &IA:", wx.Choice, choices=["None", "aparcado", "trafico", "huida", "policia", "barco"])
-        self.sp_veh_vel = _vnum("Velocidad má&x. (m/s):", 1.0, 250.0, 2.0)
-        self.sp_veh_acel = _vnum("&Aceleración:", 0.5, 100.0, 1.0)
-        self.sp_veh_freno = _vnum("&Freno:", 0.5, 100.0, 1.0)
-        self.sp_veh_salud = _vnum("Salud a&ctual:", 1.0, 50000.0, 20.0)
-        self.sp_veh_salud_max = _vnum("Salud má&xima:", 10.0, 50000.0, 20.0)
-        for sp in (self.sp_veh_vel, self.sp_veh_acel, self.sp_veh_freno, self.sp_veh_salud, self.sp_veh_salud_max):
-            sp.SetDigits(1)
+        self.sp_veh_vel = _vnum("Velocidad &máx. (m/s):", 1, 250, 25)
+        self.sp_veh_acel = _vnum("&Aceleración:", 1, 100, 6)
+        self.sp_veh_freno = _vnum("&Freno:", 1, 100, 12)
+        self.sp_veh_salud = _vnum("&Salud actual:", 1, 50000, 100)
+        self.sp_veh_salud_max = _vnum("Salud má&xima:", 10, 50000, 100)
         sed.Add(grid_v, 0, wx.EXPAND | wx.ALL, 6)
 
         fila_chk_v = wx.BoxSizer(wx.HORIZONTAL)
@@ -701,8 +699,8 @@ class VentanaTrampas(wx.Frame):
         box_tal = wx.StaticBoxSizer(wx.HORIZONTAL, p_ed, "Mejoras de taller del vehículo")
         tp = box_tal.GetStaticBox()
         _, self.sel_veh_mejora = crear_campo(tp, "M&ejora:", wx.Choice, choices=[], sizer=box_tal, horizontal=True)
-        _, self.sp_veh_mejora_niv = crear_campo(tp, "Ni&vel:", wx.SpinCtrl, min=0, max=5, initial=0, sizer=box_tal, horizontal=True, expandir=False)
-        self.btn_veh_mejora_aplicar = wx.Button(tp, label="Apli&car mejora")
+        _, self.sp_veh_mejora_niv = crear_campo(tp, "Nive&l:", wx.SpinCtrl, min=0, max=5, initial=0, sizer=box_tal, horizontal=True, expandir=False)
+        self.btn_veh_mejora_aplicar = wx.Button(tp, label="Aj&ustar mejora")
         box_tal.Add(self.btn_veh_mejora_aplicar, 0, wx.ALL, 4)
         sed.Add(box_tal, 0, wx.EXPAND | wx.ALL, 4)
         p_ed.SetSizer(sed)
@@ -744,7 +742,7 @@ class VentanaTrampas(wx.Frame):
         self.sel_npc_clase = _campo_grid(p_gen, g1, "&Clase (catálogo):", wx.Choice, choices=[])
         self.sel_npc_banda = _campo_grid(p_gen, g1, "&Banda:", wx.Choice, choices=["(ninguna)"])
         self.sel_npc_arma = _campo_grid(p_gen, g1, "Ar&ma:", wx.Choice, choices=["(por defecto)"])
-        self.sp_npc_cant = _campo_grid(p_gen, g1, "&Cantidad:", wx.SpinCtrl, min=1, max=20, initial=1)
+        self.sp_npc_cant = _campo_grid(p_gen, g1, "Ca&ntidad:", wx.SpinCtrl, min=1, max=20, initial=1)
         self.sp_npc_salud = _campo_grid(p_gen, g1, "&Salud:", wx.SpinCtrl, min=1, max=5000, initial=75)
         sg.Add(g1, 0, wx.EXPAND | wx.ALL, 6)
         fg = wx.BoxSizer(wx.HORIZONTAL)
@@ -768,21 +766,20 @@ class VentanaTrampas(wx.Frame):
         gn.AddGrowableCol(3, 1)
         self.txt_npc_ed_nombre = _campo_grid(p_act, gn, "&Nombre:", wx.TextCtrl)
         self.sp_npc_ed_salud = _campo_grid(p_act, gn, "&Salud:", wx.SpinCtrl, min=0, max=10000, initial=80)
-        self.sp_npc_ed_punt = _campo_grid(p_act, gn, "&Puntería (0-1):", wx.SpinCtrlDouble, min=0.0, max=1.0, initial=0.42, inc=0.05)
-        self.sp_npc_ed_punt.SetDigits(2)
+        self.sp_npc_ed_punt = _campo_grid(p_act, gn, "P&untería (0-100):", wx.SpinCtrl, min=0, max=100, initial=42, ayuda="Precisión al disparar, en porcentaje.")
         self.sel_npc_ed_estado = _campo_grid(p_act, gn, "&Estado:", wx.Choice, choices=["pasea", "quieto", "huye", "ataca", "sigue"])
         self.sp_npc_ed_conf = _campo_grid(p_act, gn, "&Confianza civil (-100..100):", wx.SpinCtrl, min=-100, max=100, initial=0)
-        self.chk_npc_ed_hostil = wx.CheckBox(p_act, label="Hostil a&hora")
+        self.chk_npc_ed_hostil = wx.CheckBox(p_act, label="&Hostil ahora")
         gn.Add(wx.StaticText(p_act, label="Hostilidad:"), 0, wx.ALIGN_CENTER_VERTICAL)
         gn.Add(self.chk_npc_ed_hostil, 0, wx.ALIGN_CENTER_VERTICAL)
         sa.Add(gn, 0, wx.EXPAND | wx.ALL, 6)
 
         b_npc = wx.WrapSizer(wx.HORIZONTAL)
-        self.btn_npc_aplicar = wx.Button(p_act, label="A&plicar a NPC")
+        self.btn_npc_aplicar = wx.Button(p_act, label="&Aplicar a NPC")
         self.btn_npc_traer = wx.Button(p_act, label="&Traer aquí")
         self.btn_npc_curar = wx.Button(p_act, label="Cu&rar")
-        self.btn_npc_matar = wx.Button(p_act, label="M&atar")
-        self.btn_npc_eliminar = wx.Button(p_act, label="Elimina&r")
+        self.btn_npc_matar = wx.Button(p_act, label="&Matar")
+        self.btn_npc_eliminar = wx.Button(p_act, label="El&iminar")
         self.btn_npc_limp_hostiles = wx.Button(p_act, label="Eliminar h&ostiles")
         self.btn_npc_limp_muertos = wx.Button(p_act, label="Limpiar caí&dos")
         for b in (
@@ -857,7 +854,7 @@ class VentanaTrampas(wx.Frame):
         self.btn_patrulla = wx.Button(dp, label="Mandar &patrulla")
         self.btn_patrulla_ronda = wx.Button(dp, label="Patrulla de &ronda")
         self.btn_heli_on = wx.Button(dp, label="Lanzar &helicóptero")
-        self.btn_heli_off = wx.Button(dp, label="&Retirar helicóptero")
+        self.btn_heli_off = wx.Button(dp, label="Re&tirar helicóptero")
         for b in (self.btn_patrulla, self.btn_patrulla_ronda, self.btn_heli_on, self.btn_heli_off):
             b_pol.Add(b, 0, wx.ALL, 4)
         box_d.Add(b_pol, 0, wx.EXPAND)
@@ -899,7 +896,7 @@ class VentanaTrampas(wx.Frame):
         pp = box_pers.GetStaticBox()
         _, self.sel_pers_modelo = crear_campo(pp, "M&odelo fugitivo:", wx.Choice, choices=[], sizer=box_pers, horizontal=True)
         _, self.sp_pers_vel = crear_campo(pp, "&Velocidad objetivo:", wx.SpinCtrl, min=8, max=80, initial=24, sizer=box_pers, horizontal=True, expandir=False)
-        self.btn_ev_pers = wx.Button(pp, label="Lanzar &persecución")
+        self.btn_ev_pers = wx.Button(pp, label="&Lanzar persecución")
         box_pers.Add(self.btn_ev_pers, 0, wx.ALL, 4)
         s.Add(box_pers, 0, wx.EXPAND | wx.ALL, 4)
 
@@ -907,7 +904,7 @@ class VentanaTrampas(wx.Frame):
         gp = box_gue.GetStaticBox()
         _, self.sel_ev_banda = crear_campo(gp, "&Banda rival:", wx.Choice, choices=[], sizer=box_gue, horizontal=True)
         self.btn_ev_guerra = wx.Button(gp, label="Iniciar &guerra de barrio")
-        self.btn_ev_pelea = wx.Button(gp, label="Buscar &pelea")
+        self.btn_ev_pelea = wx.Button(gp, label="Buscar p&elea")
         self.btn_ev_fin_guerra = wx.Button(gp, label="&Terminar guerra")
         for b in (self.btn_ev_guerra, self.btn_ev_pelea, self.btn_ev_fin_guerra):
             box_gue.Add(b, 0, wx.ALL, 4)
@@ -916,13 +913,13 @@ class VentanaTrampas(wx.Frame):
         box_otr = wx.StaticBoxSizer(wx.HORIZONTAL, pag, "Atracos, encargos y calle")
         op = box_otr.GetStaticBox()
         b_otros = wx.WrapSizer(wx.HORIZONTAL)
-        self.btn_ev_atr_local = wx.Button(op, label="Atracar &local cercano")
+        self.btn_ev_atr_local = wx.Button(op, label="At&racar local cercano")
         self.btn_ev_atr_banco = wx.Button(op, label="Atracar ba&nco cercano")
-        self.btn_ev_vetos = wx.Button(op, label="Limpiar &vetos de locales")
-        self.btn_ev_ambu = wx.Button(op, label="Mandar am&bulancia")
-        self.btn_ev_dinero = wx.Button(op, label="Soltar maletín de &1.000 €")
-        self.btn_ev_contrato = wx.Button(op, label="Iniciar &contrato")
-        self.btn_ev_encargo = wx.Button(op, label="Encargo de &coche")
+        self.btn_ev_vetos = wx.Button(op, label="Limp&iar vetos de locales")
+        self.btn_ev_ambu = wx.Button(op, label="Man&dar ambulancia")
+        self.btn_ev_dinero = wx.Button(op, label="&Soltar maletín de 1.000 €")
+        self.btn_ev_contrato = wx.Button(op, label="&Hacer contrato")
+        self.btn_ev_encargo = wx.Button(op, label="B&uscar encargo de coche")
         for b in (
             self.btn_ev_atr_local, self.btn_ev_atr_banco, self.btn_ev_vetos,
             self.btn_ev_ambu, self.btn_ev_dinero, self.btn_ev_contrato, self.btn_ev_encargo,
@@ -956,7 +953,7 @@ class VentanaTrampas(wx.Frame):
 
         box_tp = wx.StaticBoxSizer(wx.VERTICAL, pag, "Teletransporte")
         tp = box_tp.GetStaticBox()
-        _, self.sel_mapa = crear_campo(tp, "&Mapa / Localidad:", wx.Choice, choices=[], sizer=box_tp)
+        _, self.sel_mapa = crear_campo(tp, "&Zona / Localidad:", wx.Choice, choices=[], sizer=box_tp)
         _, self.txt_filtro_lugar = crear_campo(tp, "&Filtrar lugares:", wx.TextCtrl, sizer=box_tp)
         _, self.sel_lugar = crear_campo(tp, "&Lugar de destino:", wx.Choice, choices=[], sizer=box_tp)
         self.btn_tp = wx.Button(tp, label="&Teletransportar al lugar elegido")
@@ -967,10 +964,10 @@ class VentanaTrampas(wx.Frame):
         tip = box_ti.GetStaticBox()
         _, self.sp_hora = crear_campo(tip, "&Hora (0-23):", wx.SpinCtrl, min=0, max=23, initial=12, sizer=box_ti, horizontal=True, expandir=False)
         _, self.sp_dia = crear_campo(tip, "&Día:", wx.SpinCtrl, min=1, max=99999, initial=1, sizer=box_ti, horizontal=True, expandir=False)
-        self.chk_lluvia = wx.CheckBox(tip, label="&Lluvia")
+        self.chk_lluvia = wx.CheckBox(tip, label="Ll&uvia")
         box_ti.Add(self.chk_lluvia, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 8)
-        _, self.sel_dia_azar = crear_campo(tip, "Tipo de d&ía:", wx.Choice, choices=[], sizer=box_ti, horizontal=True)
-        self.btn_aplicar_tiempo = wx.Button(tip, label="A&plicar tiempo")
+        _, self.sel_dia_azar = crear_campo(tip, "T&ipo de día:", wx.Choice, choices=[], sizer=box_ti, horizontal=True)
+        self.btn_aplicar_tiempo = wx.Button(tip, label="&Aplicar tiempo")
         self.btn_mas_hora = wx.Button(tip, label="+1 h&ora")
         box_ti.Add(self.btn_aplicar_tiempo, 0, wx.ALL, 4)
         box_ti.Add(self.btn_mas_hora, 0, wx.ALL, 4)
@@ -981,16 +978,16 @@ class VentanaTrampas(wx.Frame):
         wrap_cfg = wx.WrapSizer(wx.HORIZONTAL)
         self._chks_cfg: dict[str, wx.CheckBox] = {}
         for clave, etiqueta in (
-            ("adultos", "Contenido +18"),
-            ("fuego_amigo", "Fuego amigo"),
-            ("guerra_calle", "Guerra de barrios"),
-            ("vida_realista", "Vida realista"),
-            ("combustible", "Combustible"),
-            ("averias", "Averías"),
-            ("normas_trafico", "Normas de tráfico"),
-            ("soltar_armas", "Soltar armas"),
-            ("mod_enemigos", "Enemigos duros"),
-            ("mod_policia", "Policía estricta"),
+            ("adultos", "&Contenido +18"),
+            ("fuego_amigo", "Fue&go amigo"),
+            ("guerra_calle", "Guerra de &barrios"),
+            ("vida_realista", "&Vida realista"),
+            ("combustible", "Combustibl&e"),
+            ("averias", "Ave&rías"),
+            ("normas_trafico", "&Normas de tráfico"),
+            ("soltar_armas", "&Soltar armas"),
+            ("mod_enemigos", "Ene&migos duros"),
+            ("mod_policia", "&Policía estricta"),
         ):
             chk = wx.CheckBox(cp, label=etiqueta)
             chk.Bind(wx.EVT_CHECKBOX, lambda e, k=clave, c=chk: self._toggle_cfg(k, c.GetValue()))
@@ -1026,14 +1023,14 @@ class VentanaTrampas(wx.Frame):
         _, self.lista_insp = crear_campo(pag, "&Campos disponibles:", wx.ListBox, choices=[], size=(-1, 260), sizer=s)
 
         fila_ed = wx.BoxSizer(wx.HORIZONTAL)
-        _, self.txt_insp_clave = crear_campo(pag, "&Clave:", wx.TextCtrl, sizer=fila_ed, horizontal=True)
+        _, self.txt_insp_clave = crear_campo(pag, "Cla&ve:", wx.TextCtrl, sizer=fila_ed, horizontal=True)
         _, self.txt_insp_valor = crear_campo(pag, "&Nuevo valor (texto o JSON):", wx.TextCtrl, sizer=fila_ed, horizontal=True)
-        self.btn_insp_escribir = wx.Button(pag, label="A&plicar cambio")
+        self.btn_insp_escribir = wx.Button(pag, label="&Aplicar cambio")
         fila_ed.Add(self.btn_insp_escribir, 0, wx.ALL, 4)
         s.Add(fila_ed, 0, wx.EXPAND | wx.ALL, 4)
 
         _, self.txt_insp_estado = crear_campo(
-            pag, "Estado del &inspector:", wx.TextCtrl, style=wx.TE_READONLY,
+            pag, "&Estado del inspector:", wx.TextCtrl, style=wx.TE_READONLY,
             ayuda="Muestra errores de sintaxis o confirmación de cambios del inspector.",
             sizer=s, horizontal=True,
         )
@@ -1508,11 +1505,11 @@ class VentanaTrampas(wx.Frame):
         vid = v["id"]
         self._sinc_control("veh.info", self.txt_veh_ed_info, f"#{vid} — {v.get('nombre')} ({v.get('modelo_id')})", forzar)
         self._sinc_control(f"veh.{vid}.nombre", self.txt_veh_ed_nombre, v.get("nombre", ""), forzar)
-        self._sinc_control(f"veh.{vid}.vel", self.sp_veh_vel, float(v.get("vel_max", 25.0)), forzar)
-        self._sinc_control(f"veh.{vid}.acel", self.sp_veh_acel, float(v.get("acel", 6.0)), forzar)
-        self._sinc_control(f"veh.{vid}.freno", self.sp_veh_freno, float(v.get("freno", 12.0)), forzar)
-        self._sinc_control(f"veh.{vid}.salud", self.sp_veh_salud, float(v.get("salud", 100.0)), forzar)
-        self._sinc_control(f"veh.{vid}.salud_max", self.sp_veh_salud_max, float(v.get("salud_max", 100.0)), forzar)
+        self._sinc_control(f"veh.{vid}.vel", self.sp_veh_vel, int(round(float(v.get("vel_max", 25.0)))), forzar)
+        self._sinc_control(f"veh.{vid}.acel", self.sp_veh_acel, int(round(float(v.get("acel", 6.0)))), forzar)
+        self._sinc_control(f"veh.{vid}.freno", self.sp_veh_freno, int(round(float(v.get("freno", 12.0)))), forzar)
+        self._sinc_control(f"veh.{vid}.salud", self.sp_veh_salud, int(round(float(v.get("salud", 100.0)))), forzar)
+        self._sinc_control(f"veh.{vid}.salud_max", self.sp_veh_salud_max, int(round(float(v.get("salud_max", 100.0)))), forzar)
         self._sinc_control(f"veh.{vid}.hostil", self.chk_veh_hostil, v.get("hostil", False), forzar)
         self._sinc_control(f"veh.{vid}.cerrado", self.chk_veh_cerrado, v.get("cerrado", False), forzar)
         ia_str = str(v.get("ia")) if v.get("ia") is not None else "None"
@@ -1606,7 +1603,7 @@ class VentanaTrampas(wx.Frame):
         nid = n["id"]
         self._sinc_control(f"npc.{nid}.nombre", self.txt_npc_ed_nombre, n.get("nombre", ""), forzar)
         self._sinc_control(f"npc.{nid}.salud", self.sp_npc_ed_salud, int(max(0, n.get("salud", 50))), forzar)
-        self._sinc_control(f"npc.{nid}.punt", self.sp_npc_ed_punt, float(n.get("punteria", 0.42)), forzar)
+        self._sinc_control(f"npc.{nid}.punt", self.sp_npc_ed_punt, int(round(float(n.get("punteria", 0.42)) * 100)), forzar)
         self._sinc_control(f"npc.{nid}.estado", self.sel_npc_ed_estado, n.get("estado", "quieto"), forzar)
         self._sinc_control(f"npc.{nid}.hostil", self.chk_npc_ed_hostil, n.get("hostil", False), forzar)
         conf = (n.get("ficha") or {}).get("confianza", 0)
@@ -1623,7 +1620,7 @@ class VentanaTrampas(wx.Frame):
                 "id": pid,
                 "nombre": self.txt_npc_ed_nombre.GetValue().strip(),
                 "salud": self.sp_npc_ed_salud.GetValue(),
-                "punteria": self.sp_npc_ed_punt.GetValue(),
+                "punteria": round(self.sp_npc_ed_punt.GetValue() / 100.0, 2),
                 "estado": self.sel_npc_ed_estado.GetStringSelection(),
                 "hostil": self.chk_npc_ed_hostil.GetValue(),
                 "confianza": self.sp_npc_ed_conf.GetValue(),
@@ -1761,6 +1758,7 @@ class VentanaTrampas(wx.Frame):
 
 def ejecutar() -> None:
     app = wx.App(False)
+    fijar_idioma_espanol()
     wx.HelpProvider.Set(wx.SimpleHelpProvider())
     v = VentanaTrampas()
     v.Show()
