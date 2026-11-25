@@ -471,6 +471,9 @@ class EnLinea:
                    "ficha": str(ok.get("ficha") or "")[:MAX_FICHA], "fichas": {}, "historial": [], "pasajeros": set(), "radio_ajena": None,
                    "economia": (ok.get("servidor") or {}).get("economia") if isinstance((ok.get("servidor") or {}).get("economia"), dict) else None,
                    "veh_pend": {}, "dinero_visto": None, "t_gasto": None, "t_guardado_real": None, "reenganche": None, "regrupo": None}
+        srv_puente = getattr(self.app, "_puente_trampas", None)
+        if srv_puente is not None and not bool(self.sv["info"].get("permitir_trampas", False)):
+            srv_puente.suspender()
         for clave in ("historial", "radio_ajena_dicha"):                     # al volver, lo dicho por los canales de rol sigue ahí
             if clave in antes:
                 self.sv[clave] = antes[clave]

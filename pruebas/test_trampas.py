@@ -322,6 +322,9 @@ def test_ganchos_y_gui_wx_sincronizada(puente_activo):
 def test_inspector_blindado_contra_errores_y_sintaxis(puente_activo, monkeypatch):
     import threading
     robot, p, srv, cli, _, _ = puente_activo
+    _llamar_vivo(robot.app, cli, "npcs.crear", modo="aliado", cantidad=1)
+    if not p.vehiculos:
+        _llamar_vivo(robot.app, cli, "vehiculos.crear", modelo_id="sedan", hacer_mio=True, subir_ahora=False)
     p.j.dinero = 500
     p.j.salud = 90.0
     p.j.objetos["botiquin"] = 2
@@ -500,3 +503,238 @@ def test_servidor_permite_trampas_solo_si_dueno_habilita(puente_activo, tmp_path
     robot.app.paso(1 / 60)
     assert srv._activo is False
     assert descubrir_instancias(str(carpeta_fichas)) == []
+
+
+def test_servidor_real_tcp_transmision_y_restricciones(tmp_path):
+    import hashlib
+    from conftest import Robot
+    from juego import enlinea
+    from juego.app import App
+    from test_servidor import Banco
+
+    srv_dir = tmp_path / "srv_real"
+    carpeta_a = str(tmp_path / "fichas_a")
+    carpeta_b = str(tmp_path / "fichas_b")
+    banco = Banco(srv_dir, economia="si", saldo_inicial=5000, ganancia_hora=1000, ganancia_acumula=1)
+    app_a = App(pruebas=True)
+    app_b = App(pruebas=True)
+    robot_a, robot_b = Robot(app_a), Robot(app_b)
+
+    def entrar(robot, nombre, carpeta):
+        app = robot.app
+        app.cfg["red_nombre"] = nombre
+        app.semilla_identidad = hashlib.sha256(("tcp-" + nombre).encode()).digest()
+        srv_puente = puente.iniciar(app, forzar=True, carpeta=carpeta)
+        s = {"nombre": "", "dir": f"puertobravo://127.0.0.1:{banco.puerto}", "cert": ""}
+        enlace, motivo = enlinea.conectar(app, s)
+        assert enlace is not None, motivo
+        app.enlace = enlace
+        if enlace.ok.get("partida"):
+            app.empezar_partida(enlace.ok["partida"])
+        else:
+            app.empezar_partida(None, personaje={"id": app.datos["personajes"][0]["id"], "genero": "h"})
+        robot.saltar_dialogos()
+        p = app.partida
+        p.cfg["sucesos"] = False
+        return p, srv_puente
+
+    def esperar(cond, *robots, seg=8.0):
+        fin = time.monotonic() + seg
+        while time.monotonic() < fin:
+            for r in robots:
+                r.frames(2)
+            if cond():
+                return True
+            time.sleep(0.01)
+        return False
+
+    try:
+        # 1. Por defecto (permitir_trampas="no"): al entrar, el servidor transmite permiso=False y el puente se anula ya mismo
+        p_a, srv_a = entrar(robot_a, "Ana", carpeta_a)
+        assert p_a.sv["info"]["permitir_trampas"] is False
+        assert p_a.sv["admin"] is True  # primera cuenta es admin del servidor, aun así no puede habilitar trampas
+        assert srv_a._activo is False
+        assert srv_a._sock is None
+        assert descubrir_instancias(carpeta_a) == []
+        with pytest.raises(ValueError, match="multijugador"):
+            puente.despachar(app_a, "estado", {})
+
+        # 2. Un admin desde el chat (/trampas si, /cheats si) o enviando mensajes falsos NO puede activar trampas
+        p_a.red.enviar({"t": "chat", "canal": "todos", "texto": "/trampas si"})
+        assert esperar(lambda: "consola o el panel" in robot_a.dicho(), robot_a)
+        p_a.red.enviar({"t": "chat", "canal": "todos", "texto": "/cheats si"})
+        p_a.red.enviar({"t": "trampas", "permitir": True})  # intento de suplantación desde el cliente
+        for _ in range(15):
+            robot_a.frames(1)
+            time.sleep(0.01)
+        assert banco.srv.cfg["permitir_trampas"] == "no"
+        assert p_a.sv["info"]["permitir_trampas"] is False
+        assert srv_a._activo is False
+        assert descubrir_instancias(carpeta_a) == []
+
+        # 3. Con trampas desactivadas, el servidor recorta dinero ilegítimo por la economía
+        p_a.j.dinero = 99999
+        p_a.j.banco = 0
+        p_a.t_red = 1.0
+        assert esperar(lambda: (p_a.j.dinero + p_a.j.banco) <= 2500, robot_a)
+
+        # 4. Dueño habilita desde consola ("trampas si"): transmisión real TCP y puente activo + economía liberada
+        resp = banco.hacer(banco.srv.orden, "trampas si")
+        assert "permitido" in resp
+        assert esperar(lambda: p_a.sv["info"].get("permitir_trampas") is True and srv_a._activo is True, robot_a)
+        assert len(descubrir_instancias(carpeta_a)) == 1
+        cli_a, info_a = _conectar_vivo(app_a, carpeta_a)
+        assert info_a["info"]["en_servidor"] is True
+        assert info_a["info"]["trampas_servidor_permitidas"] is True
+
+        dinero_antes = p_a.j.dinero
+        res_din = _llamar_vivo(app_a, cli_a, "jugador.set", dinero_delta=50000)
+        assert res_din["jugador"]["dinero"] == dinero_antes + 50000
+        p_a.t_red = 1.0
+        for _ in range(25):
+            robot_a.frames(2)
+            time.sleep(0.01)
+        assert p_a.j.dinero == dinero_antes + 50000  # el servidor no lo confisca mientras trampas=si
+
+        # 5. Segundo jugador entra después y recibe permitir_trampas=True en el saludo "ok"
+        p_b, srv_b = entrar(robot_b, "Blas", carpeta_b)
+        assert p_b.sv["info"]["permitir_trampas"] is True
+        assert srv_b._activo is True
+        assert len(descubrir_instancias(carpeta_b)) == 1
+        cli_b, info_b = _conectar_vivo(app_b, carpeta_b)
+        assert info_b["info"]["trampas_servidor_permitidas"] is True
+        res_b = _llamar_vivo(app_b, cli_b, "jugador.set", salud=75)
+        assert res_b["jugador"]["salud"] == 75.0
+
+        # 6. Dueño deshabilita en vivo mediante aplicar_config (como desde el panel del servidor)
+        al_momento, con_reinicio = banco.hacer(banco.srv.aplicar_config, {"permitir_trampas": "no"})
+        assert "permitir_trampas" in al_momento and con_reinicio == []
+        assert esperar(
+            lambda: (
+                p_a.sv["info"].get("permitir_trampas") is False
+                and p_b.sv["info"].get("permitir_trampas") is False
+                and srv_a._activo is False
+                and srv_b._activo is False
+            ),
+            robot_a,
+            robot_b,
+        )
+        assert descubrir_instancias(carpeta_a) == []
+        assert descubrir_instancias(carpeta_b) == []
+        with pytest.raises(ErrorPuente):
+            _llamar_vivo(app_a, cli_a, "jugador.set", dinero_delta=100)
+        with pytest.raises(ErrorPuente):
+            _llamar_vivo(app_b, cli_b, "jugador.set", dinero_delta=100)
+        # Lo ganado legítimamente mientras estaba habilitado se conserva, pero nuevo dinero sin respaldo se recorta
+        assert p_a.j.dinero == dinero_antes + 50000
+        saldo_legitimo = p_a.j.dinero + p_a.j.banco
+        p_a.j.dinero += 99999
+        p_a.t_red = 1.0
+        assert esperar(lambda: (p_a.j.dinero + p_a.j.banco) <= saldo_legitimo + 1500, robot_a)
+
+        # 7. Recarga desde archivo servidor.conf en disco vuelve a habilitarlo en vivo
+        conf_ruta = srv_dir / "servidor.conf"
+        conf = dict(banco.srv.cfg, permitir_trampas="si")
+        from servidor import opciones
+        assert opciones.guardar(str(conf_ruta), conf) == []
+        banco.srv.ruta_conf = str(conf_ruta)
+        r_rec = banco.hacer(banco.srv.orden, "recargar")
+        assert "Permitir menú de trampas" in r_rec
+        assert esperar(lambda: srv_a._activo is True and srv_b._activo is True, robot_a, robot_b)
+
+        # 8. Durante reconexión (sv_espera) vuelve a bloquearse; al salir del servidor vuelve a solitario y funciona
+        p_a.sv_espera = {"causa": "reinicio"}
+        robot_a.frames(1)
+        assert srv_a._activo is False
+        p_a.sv_espera = None
+        p_a.sv_salir()
+        robot_a.frames(1)
+        assert srv_a._activo is True
+        cli_a2, info_a2 = _conectar_vivo(app_a, carpeta_a)
+        assert info_a2["info"]["en_servidor"] is False
+    finally:
+        for a in (app_a, app_b):
+            if a.partida is not None:
+                try:
+                    a.partida.sv_salir()
+                    a.partida.desconectar_online()
+                except Exception:
+                    pass
+            puente.detener(a)
+            a.radio.cancelar()
+            a.ambiente.cancelar()
+            a.mez.cerrar()
+        banco.parar()
+
+
+def test_inspector_y_cfg_atomicidad_exhaustiva(puente_activo):
+    robot, p, _, cli, _, _ = puente_activo
+    _llamar_vivo(robot.app, cli, "npcs.crear", modo="aliado", cantidad=1)
+    if not p.vehiculos:
+        _llamar_vivo(robot.app, cli, "vehiculos.crear", modelo_id="sedan", hacer_mio=True, subir_ahora=False)
+    per = p.personas[0]
+    veh = p.vehiculos[0]
+
+    dinero_orig = p.j.dinero
+    salud_orig = p.j.salud
+    objetos_orig = dict(p.j.objetos)
+    armas_orig = dict(p.j.armas)
+    mochila_orig = list(p.j.mochila)
+    stats_orig = {k: v for k, v in p.j.stats.items() if k != "tiempo"}
+    cfg_orig = dict(robot.app.cfg.v)
+    per_dict_orig = dict(per.__dict__)
+    veh_dict_orig = {k: v for k, v in veh.__dict__.items() if k != "modelo"}
+    modelo_ref = veh.modelo
+
+    fallos = [
+        ("jugador", "objetos", '{"botiquin": NaN}'),
+        ("jugador", "objetos", '{"botiquin": 5,}'),
+        ("jugador", "objetos", '{"botiquin": true}'),
+        ("jugador", "mochila", "[1, 2, ]"),
+        ("jugador", "mochila", "[123]"),
+        ("jugador", "armas", '{"": {}}'),
+        ("jugador", "dinero", True),
+        ("jugador", "salud", False),
+        ("jugador", "salud", "-10"),
+        ("jugador", "a_dict", "1"),
+        ("jugador", "dinero\n", "10"),
+        ("jugador", "x" * 81, "10"),
+        ("jugador", "perro", "abc\x00def"),
+        ("stats", "nueva_inf", "[1, Infinity]"),
+        ("stats", "clave\tTab", "5"),
+        ("vehiculo_actual", "modelo", "{}"),
+        ("vehiculo_actual", "canal", "1"),
+        ("vehiculo_actual", "pasajeros", "[]"),
+        ("persona", "dist", "0"),
+    ]
+    for objetivo, clave, valor in fallos:
+        extra = {"id": per.id} if objetivo == "persona" else ({"id": veh.id} if objetivo == "vehiculo_actual" else {})
+        with pytest.raises(ErrorPuente, match="."):
+            _llamar_vivo(robot.app, cli, "inspector.escribir", objetivo=objetivo, clave=clave, valor=valor, **extra)
+
+    # Atomicidad estricta en cfg.set: si una clave falla, ninguna del lote se aplica
+    fuego_antes = robot.app.cfg["fuego_amigo"]
+    with pytest.raises(ErrorPuente):
+        _llamar_vivo(robot.app, cli, "cfg.set", cambios={"fuego_amigo": not fuego_antes, "inexistente": 1})
+    with pytest.raises(ErrorPuente):
+        _llamar_vivo(robot.app, cli, "cfg.set", cambios={"fuego_amigo": not fuego_antes, "velocidad_voz": "no_numero"})
+
+    assert p.j.dinero == dinero_orig
+    assert p.j.salud == salud_orig
+    assert p.j.objetos == objetos_orig
+    assert p.j.armas == armas_orig
+    assert p.j.mochila == mochila_orig
+    assert {k: v for k, v in p.j.stats.items() if k != "tiempo"} == stats_orig
+    assert "nueva_inf" not in p.j.stats
+    assert robot.app.cfg.v == cfg_orig
+    assert robot.app.cfg["fuego_amigo"] == fuego_antes
+    assert set(per.__dict__.keys()) == set(per_dict_orig.keys())
+    ignorados_mov = {"x", "y", "rumbo", "vx", "vy"}
+    assert {k: v for k, v in per.__dict__.items() if not k.startswith("t_") and k not in ignorados_mov} == {
+        k: v for k, v in per_dict_orig.items() if not k.startswith("t_") and k not in ignorados_mov
+    }
+    assert set(veh.__dict__.keys()) == set(veh_dict_orig.keys()) | {"modelo"}
+    assert {k: v for k, v in veh.__dict__.items() if k != "modelo" and not k.startswith("t_") and k not in ignorados_mov} == {
+        k: v for k, v in veh_dict_orig.items() if not k.startswith("t_") and k not in ignorados_mov
+    }
+    assert veh.modelo is modelo_ref

@@ -122,11 +122,14 @@ def _validar_finito_recursivo(val) -> None:
 
 def validar_clave_inspector(objetivo: str, clave: str) -> str:
     """Valida el nombre de clave o atributo antes de usarlo o enviarlo desde el Inspector."""
-    limpia = str(clave or "").strip()
+    cruda = "" if clave is None else str(clave)
+    if any(c in cruda for c in "\x00\n\r\t"):
+        raise ValueError("Nombre de clave inválido (contiene caracteres de control o saltos de línea). No se modificó ni añadió nada.")
+    limpia = cruda.strip()
     if not limpia:
         raise ValueError("Falta el nombre de la clave. No se modificó ni añadió nada.")
-    if len(limpia) > 80 or any(c in limpia for c in "\x00\n\r\t"):
-        raise ValueError("Nombre de clave inválido (contiene caracteres de control o supera 80 caracteres). No se modificó ni añadió nada.")
+    if len(limpia) > 80:
+        raise ValueError("Nombre de clave inválido (supera 80 caracteres). No se modificó ni añadió nada.")
     if objetivo in ("jugador", "vehiculo", "vehiculo_actual", "persona") and limpia.startswith("_"):
         raise ValueError(f"Atributo interno o protegido no editable ({limpia}). No se modificó ni añadió nada.")
     return limpia
@@ -1151,6 +1154,8 @@ def despachar(app, cmd: str, args: dict | None = None):
                 per.estado = "ataca" if per.hostil else "quieto"
                 per.activo = True
                 per.agresor = True
+                if per.tipo == "banda":
+                    per.avisado = True
                 if banda:
                     per.banda = banda
                 grupo_gente.append(per)
@@ -1191,6 +1196,8 @@ def despachar(app, cmd: str, args: dict | None = None):
                 per.hostil = bool(args.get("hostil", True))
                 per.estado = str(args.get("estado") or ("ataca" if per.hostil else "quieto"))
                 per.activo = True
+                if per.tipo == "banda":
+                    per.avisado = True
                 if banda:
                     per.banda = banda
                 if per.hostil:

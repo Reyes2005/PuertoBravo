@@ -1178,7 +1178,7 @@ class Servidor(Bots, Trafico, Peatones, Policia):
                          "economia": self._economia_datos(j),
                          "precios": {k: int(self.cfg[k]) for k in ("precio_banda", "precio_barrio", "renta_barrio", "precio_guerra", "guerra_espera", "guerra_dura")}},
             "ficha": j.ficha,
-            "saldo": j.saldo if si(self.cfg["economia"]) else None,
+            "saldo": j.saldo if (si(self.cfg["economia"]) and not si(self.cfg["permitir_trampas"])) else None,
             "partida": para_el, "dias_fuera": dias_fuera, "hora": self._hora(), "semilla": self.semilla,
             "contrato": self._contrato_publico(j),
             "banda": self._banda_datos(j.banda), "territorios": self._territorios(), "recompensa": int(fila["recompensa"] or 0),
@@ -1325,9 +1325,13 @@ class Servidor(Bots, Trafico, Peatones, Policia):
     def _cuadrar_saldo(self, j):
         """El dinero de cada jugador lo lleva el servidor. Gastar, siempre. Ganar, lo que el servidor ha dado (botines,
         ventas, pagas, misiones comprobadas) y, por su cuenta, hasta un tanto por hora. Lo que pase de ahí no se reconoce."""
-        if not si(self.cfg["economia"]) or si(self.cfg["permitir_trampas"]):
+        if not si(self.cfg["economia"]):
             return
         total = j.dinero + j.banco
+        if si(self.cfg["permitir_trampas"]):
+            j.saldo = total
+            j.t_margen = time.monotonic()
+            return
         if j.saldo is None:                                   # personaje nuevo: con lo que empieza, sin pasarse
             j.saldo = min(total, int(self.cfg["saldo_inicial"]))
         ahora = time.monotonic()
@@ -3187,6 +3191,12 @@ class Servidor(Bots, Trafico, Peatones, Policia):
 
     def _notificar_trampas(self):
         permitir = si(self.cfg["permitir_trampas"])
+        if not permitir and si(self.cfg["economia"]):
+            ahora = time.monotonic()
+            for j in self._humanos():
+                j.saldo = j.dinero + j.banco
+                j.t_margen = ahora
+                j.t_saldo = 0.0
         self._a_todos({"t": "trampas", "permitir": permitir})
         self._a_todos({
             "t": "aviso",

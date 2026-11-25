@@ -1,0 +1,12 @@
+{
+  "Permitir menú de trampas": "Permitir menu de trapaças",
+  "Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el dueño del servidor permite usarlo aquí.": "Com no, que é o padrão, os jogos anulam completamente o menu de trapaças ao entrar neste servidor. Com si, o dono do servidor permite usá-lo aqui.",
+  "si o no": "si ou no",
+  "permite o bloquea el menú de trampas en este servidor (solo desde consola o panel)": "permite ou bloqueia o menu de trapaças neste servidor (somente pelo console ou painel)",
+  "Esta orden solo se puede dar desde la consola o el panel del servidor.": "Este comando só pode ser dado pelo console ou pelo painel do servidor.",
+  "El menú de trampas está permitido en este servidor.": "O menu de trapaças está permitido neste servidor.",
+  "El menú de trampas está bloqueado en este servidor.": "O menu de trapaças está bloqueado neste servidor.",
+  "Escribe trampas si o trampas no.": "Digite trampas si ou trampas no.",
+  "El dueño del servidor ha permitido el menú de trampas.": "O dono do servidor permitiu o menu de trapaças.",
+  "El dueño del servidor ha bloqueado el menú de trampas.": "O dono do servidor bloqueou o menu de trapaças."
+}

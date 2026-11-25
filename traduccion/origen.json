@@ -15866,9 +15866,11 @@
 "data/datos/misiones.json"
 ],
 "El menú de trampas está bloqueado en este servidor.": [
+"servidor/nucleo.py",
 "servidor/nucleo.py"
 ],
 "El menú de trampas está permitido en este servidor.": [
+"servidor/nucleo.py",
 "servidor/nucleo.py"
 ],
 "El menú «{titulo}» de la barra de menús no tiene letra de acceso (&).": [

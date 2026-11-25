@@ -1,0 +1,12 @@
+{
+  "Permitir menú de trampas": "Allow cheat menu",
+  "Con no, que es lo de serie, los juegos anulan por completo el menú de trampas al entrar en este servidor. Con si, el dueño del servidor permite usarlo aquí.": "With no, which is the default, games completely disable the cheat menu when joining this server. With si, the server owner allows using it here.",
+  "si o no": "si or no",
+  "permite o bloquea el menú de trampas en este servidor (solo desde consola o panel)": "allows or blocks the cheat menu on this server (console or panel only)",
+  "Esta orden solo se puede dar desde la consola o el panel del servidor.": "This command can only be given from the server console or panel.",
+  "El menú de trampas está permitido en este servidor.": "The cheat menu is allowed on this server.",
+  "El menú de trampas está bloqueado en este servidor.": "The cheat menu is blocked on this server.",
+  "Escribe trampas si o trampas no.": "Type trampas si or trampas no.",
+  "El dueño del servidor ha permitido el menú de trampas.": "The server owner has allowed the cheat menu.",
+  "El dueño del servidor ha bloqueado el menú de trampas.": "The server owner has blocked the cheat menu."
+}
